@@ -1,0 +1,3 @@
+-- Intentionally no dummy listings, leads, passwords or privileged accounts.
+-- The 10 categories and 19 subtypes are versioned in the taxonomy migration,
+-- so local resets and hosted db push receive the same reference data.

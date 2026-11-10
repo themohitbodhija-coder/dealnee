@@ -1,0 +1,10 @@
+{
+  "name": "dealinee-migration",
+  "private": true,
+  "scripts": {
+    "db:test:native": "node scripts/test-database.mjs",
+    "db:test": "node scripts/test-database.mjs --supabase",
+    "db:start": "supabase start",
+    "db:reset:local": "supabase db reset --local"
+  }
+}

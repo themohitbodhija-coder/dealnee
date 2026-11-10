@@ -1,0 +1,38 @@
+name: Supabase database foundation
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - 'scripts/test-database.mjs'
+      - 'package.json'
+      - '.github/workflows/database.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'scripts/test-database.mjs'
+      - 'package.json'
+      - '.github/workflows/database.yml'
+permissions:
+  contents: read
+jobs:
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.72.7
+      - name: Start isolated local Supabase
+        run: supabase start
+      - name: Check migrations on a fresh local database
+        run: supabase db reset --local
+      - name: Exercise constraints and permissions against real Supabase roles
+        run: npm run db:test
+      - name: Stop local services
+        if: always()
+        run: supabase stop --no-backup

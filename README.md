@@ -2,12 +2,13 @@
 
 ## Supabase migration in progress
 
-The first migration milestone adds the PostgreSQL schema, taxonomy, permissions
-and isolated database tests. See [migration progress](docs/MIGRATION_PROGRESS.md)
+Migration work now includes the PostgreSQL foundation, catalog APIs and opt-in
+Supabase Auth integration, with database and frontend regression tests. See [migration progress](docs/MIGRATION_PROGRESS.md)
 for setup, verification and remaining work, and the
 [implementation plan](docs/SUPABASE_MIGRATION_PLAN.md) for the full rollout.
-The React application currently still uses Express; the instructions below
-describe that existing application until frontend parity is complete.
+The React application defaults to Express; the instructions below describe
+that existing application until frontend parity is complete. See the
+[Supabase catalog/Auth setup](docs/CATALOG_AUTH_SETUP.md) for isolated local review.
 
 ## Contents and status
 `frontend/` contains the current React source, public assets, tests, package files and configuration. `backend/` contains the Express/Mongoose source, existing scripts, tests and package files.
