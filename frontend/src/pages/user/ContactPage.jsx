@@ -1,38 +1,8 @@
-import React, { useState } from 'react';
-import { inquiryService } from '../../services/api';
+import React from 'react';
+import InquiryForm from '../../components/user/InquiryForm';
 import { FaPhone, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 
 const ContactPage = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: '',
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setSubmitting(true);
-      await inquiryService.create(formData);
-      setSuccess(true);
-      setFormData({ name: '', email: '', phone: '', message: '' });
-      setTimeout(() => setSuccess(false), 5000);
-    } catch (error) {
-      alert('Error sending message. Please try again.');
-      console.error('Error:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -51,72 +21,7 @@ const ContactPage = () => {
             <div>
               <h2 className="text-3xl font-bold text-gray-800 mb-8">Send us a Message</h2>
 
-              {success && (
-                <div className="mb-6 p-4 bg-green-100 text-green-700 rounded-lg">
-                  Thank you for your message! We'll get back to you soon.
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-2">Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500"
-                    placeholder="Your Name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-2">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500"
-                    placeholder="your@email.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500"
-                    placeholder="+91 9776 631 999"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-2">Message</label>
-                  <textarea
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    required
-                    rows="5"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500"
-                    placeholder="Your Message"
-                  ></textarea>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold disabled:bg-gray-400"
-                >
-                  {submitting ? 'Sending...' : 'Send Message'}
-                </button>
-              </form>
+              <InquiryForm />
             </div>
 
             {/* Contact Info */}

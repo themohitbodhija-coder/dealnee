@@ -16,10 +16,7 @@ import {
   initializePropertyFormState,
 } from '../../reducers/propertyFormReducer';
 import {
-  validateStep,
   validateCompleteForm,
-  isStepComplete,
-  validateImages,
 } from '../../validation/propertyValidation';
 import {
   saveFormToLocalStorage,
@@ -31,6 +28,9 @@ import {
   cleanCorruptedLocalStorage,
 } from '../../utils/propertyFormUtils';
 import { propertyService } from '../../services/api';
+import { usesSupabase } from '../../lib/backend';
+import { propertyWritePayload } from '../../utils/propertyWritePayload';
+import { imageReferences, createPhotoSession } from '../../services/photoService';
 import BasicInfoStep from './property-steps/BasicInfoStep';
 import LocationStep from './property-steps/LocationStep';
 import ContactStep from './property-steps/ContactStep';
@@ -323,7 +323,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
             // so dropdowns and the Review step both work correctly.
             category:
               (editingProperty.category && typeof editingProperty.category === 'object'
-                ? editingProperty.category.name || editingProperty.category._id
+                ? editingProperty.category.code || editingProperty.category.name || editingProperty.category._id
                 : editingProperty.category) || '',
             subcategory:
               (editingProperty.subcategory && typeof editingProperty.subcategory === 'object'
@@ -335,8 +335,8 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
             city: editingProperty.location?.city || '',
             state: editingProperty.location?.state || '',
             pincode: editingProperty.location?.pincode || '',
-            latitude: editingProperty.location?.latitude || null,
-            longitude: editingProperty.location?.longitude || null,
+            latitude: editingProperty.location?.latitude ?? null,
+            longitude: editingProperty.location?.longitude ?? null,
             landmark: editingProperty.location?.landmark || '',
             locality: editingProperty.location?.locality || '',
           },
@@ -347,6 +347,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
             phone: editingProperty.contact?.phone || '',
           },
           propertyDetails: {
+            ...(editingProperty.propertyDetails || {}),
             // Use ?? instead of || so a real value of 0 (e.g. 0 bathrooms)
             // isn't wiped out and shown as blank when editing.
             price: editingProperty.price ?? '',
@@ -361,7 +362,9 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
               editingProperty.propertyDetails?.furnishing ||
               '',
           },
-          images: (editingProperty.images || []).map((img) => ({
+          images: (editingProperty.images || []).map((img, index) => ({
+            ...(editingProperty.imageRecords?.[index] || {}),
+            preview: '',
             url: img,
             file: null,
             name: img.split('/').pop() || 'image',
@@ -387,6 +390,10 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
       // Try to load from localStorage
       const saved = loadFormFromLocalStorage();
       if (saved && validateFormDataShape(saved)) {
+        if (usesSupabase) {
+          saved.createSessionId ||= createPhotoSession();
+          saved.basicInfo.propertyId = 'Assigned on save';
+        }
         // Clear images from loaded form since File objects can't be restored from storage
         // Users will need to re-upload images if form is resumed
         console.log('[Form Init] Loaded form from storage, clearing non-serializable images');
@@ -396,14 +403,15 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
         };
       }
       cleanCorruptedLocalStorage();
-      return INITIAL_FORM_STATE;
+      return usesSupabase ? { ...INITIAL_FORM_STATE, createSessionId: createPhotoSession(), basicInfo: { ...INITIAL_FORM_STATE.basicInfo, propertyId: 'Assigned on save' } } : INITIAL_FORM_STATE;
     } catch (error) {
       console.error('Error loading saved form:', error);
       cleanCorruptedLocalStorage();
-      return INITIAL_FORM_STATE;
+      return usesSupabase ? { ...INITIAL_FORM_STATE, createSessionId: createPhotoSession(), basicInfo: { ...INITIAL_FORM_STATE.basicInfo, propertyId: 'Assigned on save' } } : INITIAL_FORM_STATE;
     }
   }, [editingProperty]);
 
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [formData, dispatch] = useReducer(propertyFormReducer, initialFormData, initializePropertyFormState);
 
   // Generate dynamic steps based on property type
@@ -419,7 +427,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [submitAttempts, setSubmitAttempts] = useState(0);
+  const [, setSubmitAttempts] = useState(0);
   const [lastError, setLastError] = useState(null);
 
   // Refs for lifecycle management
@@ -475,16 +483,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
   /**
    * Validate current step
    */
-  const isStepValid = useCallback(() => {
-    const stepErrors = validateStep(FORM_STEPS[currentStep]?.id, formData);
-    if (Object.keys(stepErrors).length > 0) {
-      console.log(`[Validation Error - Step ${FORM_STEPS[currentStep]?.label}]`, stepErrors);
-      setErrors(stepErrors);
-      return false;
-    }
-    setErrors({});
-    return true;
-  }, [currentStep, formData, FORM_STEPS]);
+
 
   /**
    * Navigate to previous step
@@ -543,7 +542,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
    */
   const handleSubmit = useCallback(async () => {
     // Prevent duplicate submissions
-    if (loading) {
+    if (loading || uploadingImages) {
       return;
     }
 
@@ -591,46 +590,23 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
         imageCount: formData.images?.length || 0,
       });
 
-      // Build multipart payload so real images are uploaded
-      const formPayload = new FormData();
-
-      // Send all property fields as a JSON string
-      formPayload.append('property', JSON.stringify(submissionData));
-      console.log('[Property Submit] Property JSON appended');
-
-      // Append actual image files
-      const imageFilesAttached = (formData.images || [])
-        .filter((img) => img && img.file)
-        .map((img) => {
-          if (!img.file) {
-            console.warn('[Property Submit] Image missing File object:', img);
-            return null;
-          }
-          console.log('[Property Submit] Attaching image:', {
-            name: img.name,
-            size: img.file?.size || 'unknown',
-            type: img.file?.type || 'unknown',
-            hasFile: !!img.file,
-          });
-          formPayload.append('images', img.file, img.name);
-          return img.name;
-        })
-        .filter(Boolean);
-      console.log('[Property Submit] Images attached:', imageFilesAttached, 'Total:', imageFilesAttached.length);
-      
-      if (imageFilesAttached.length === 0 && formData.images.length > 0) {
-        console.error('[Property Submit] WARNING: Images exist but have no File objects!', formData.images);
+      const isEditMode = !!editingProperty?._id;
+      let apiCall;
+      if (usesSupabase) {
+        const body = {
+          property: propertyWritePayload(formData, editingProperty?.status || 'available'),
+          images: imageReferences(formData.images || []),
+          version: isEditMode ? editingProperty.version : null,
+          createSessionId: isEditMode ? null : formData.createSessionId,
+        };
+        apiCall = isEditMode ? propertyService.update(editingProperty._id, body) : propertyService.create(body);
+      } else {
+        const formPayload = new FormData();
+        formPayload.append('property', JSON.stringify(submissionData));
+        (formData.images || []).filter(img => img?.file).forEach(img => formPayload.append('images', img.file, img.name));
+        apiCall = isEditMode ? propertyService.update(editingProperty._id, formPayload) : propertyService.create(formPayload);
       }
 
-      // Submit to API (multipart)
-      console.log(`[Property Submit] Submitting with ${SUBMISSION_TIMEOUT_MS}ms timeout...`);
-      const isEditMode = !!editingProperty?._id;
-      console.log('[Property Submit] Edit mode:', isEditMode);
-      
-      const apiCall = isEditMode
-        ? propertyService.update(editingProperty._id, formPayload)
-        : propertyService.create(formPayload);
-      
       const response = await Promise.race([
         apiCall,
         new Promise((_, reject) =>
@@ -738,7 +714,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
       } else if (error.response?.status === 403) {
         errorMessage = 'You do not have permission to add properties';
       } else if (error.response?.status === 409) {
-        errorMessage = 'This property already exists';
+        errorMessage = 'This property changed or this create session was already saved. Reload the listing before saving again.';
       } else if (error.response?.status >= 500) {
         errorMessage = 'Server error. Please try again later.';
       } else if (!error.response) {
@@ -758,7 +734,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
         submit: errorMessage,
       });
     }
-  }, [formData, loading, navigate, editingProperty]);
+  }, [formData, loading, uploadingImages, editingProperty, navigate, onEditComplete]);
 
   /**
    * Retry last submission
@@ -892,6 +868,9 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
               dispatch={dispatch}
               errors={errors}
               isEditMode={!!editingProperty}
+              propertyId={editingProperty?._id}
+              createSessionId={formData.createSessionId}
+              onUploadingChange={setUploadingImages}
             />
           ) : (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -910,7 +889,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
             onPrev={handlePrevious}
             onNext={handleNext}
             onSubmit={handleSubmit}
-            loading={loading}
+            loading={loading || uploadingImages}
             nextButtonDisabled={nextButtonDisabled || (isLastStep && nextButtonDisabled)}
           />
         </div>

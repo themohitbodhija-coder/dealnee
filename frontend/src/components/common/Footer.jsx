@@ -80,9 +80,9 @@ const Footer = () => {
               <span>Categories</span>
             </h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-gray-400 hover:text-red-400 transition text-sm">Buy Property</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-red-400 transition text-sm">Rent Property</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-red-400 transition text-sm">Commercial</a></li>
+              <li><Link to="/properties?type=buy" className="text-gray-400 hover:text-red-400 transition text-sm">Buy Property</Link></li>
+              <li><Link to="/properties?type=rent" className="text-gray-400 hover:text-red-400 transition text-sm">Rent Property</Link></li>
+              <li><Link to="/properties?type=commercial" className="text-gray-400 hover:text-red-400 transition text-sm">Commercial</Link></li>
             </ul>
           </div>
 
@@ -93,10 +93,10 @@ const Footer = () => {
               <span>Resources</span>
             </h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-gray-400 hover:text-red-400 transition text-sm">Blog</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-red-400 transition text-sm">Guides</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-red-400 transition text-sm">FAQ</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-red-400 transition text-sm">Support</a></li>
+              <li><span className="text-gray-400 hover:text-red-400 transition text-sm">Blog</span></li>
+              <li><span className="text-gray-400 hover:text-red-400 transition text-sm">Guides</span></li>
+              <li><span className="text-gray-400 hover:text-red-400 transition text-sm">FAQ</span></li>
+              <li><Link to="/contact" className="text-gray-400 hover:text-red-400 transition text-sm">Support</Link></li>
             </ul>
           </div>
 
@@ -135,8 +135,8 @@ const Footer = () => {
           </div>
           <div className="flex space-x-6">
             <Link to="/privacy-policy" className="hover:text-red-400 transition">Privacy Policy</Link>
-            <a href="#" className="hover:text-red-400 transition">Terms & Conditions</a>
-            <a href="#" className="hover:text-red-400 transition">Cookie Policy</a>
+            <span className="hover:text-red-400 transition">Terms & Conditions</span>
+            <span className="hover:text-red-400 transition">Cookie Policy</span>
           </div>
         </div>
       </div>

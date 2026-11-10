@@ -1,0 +1,142 @@
+\set ON_ERROR_STOP on
+begin;
+\ir ../assertions.sql
+insert into auth.users(id,email) values
+ ('50000000-0000-4000-8000-000000000001','admin-one@example.test'),
+ ('50000000-0000-4000-8000-000000000002','admin-two@example.test'),
+ ('50000000-0000-4000-8000-000000000003','manager@example.test'),
+ ('50000000-0000-4000-8000-000000000004','regular@example.test'),
+ ('50000000-0000-4000-8000-000000000005','property-staff@example.test');
+update private.user_access set role='admin' where user_id in ('50000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000002');
+update private.user_access set role='subadmin' where user_id in ('50000000-0000-4000-8000-000000000003','50000000-0000-4000-8000-000000000005');
+insert into private.user_permissions values ('50000000-0000-4000-8000-000000000003','manage_users'),('50000000-0000-4000-8000-000000000005','manage_properties');
+select pg_temp.assert_true(not has_function_privilege('authenticated','public.admin_issue_reauth(uuid,text,uuid,jsonb)','EXECUTE'),'caller cannot mint password proofs');
+select pg_temp.assert_true(not has_function_privilege('authenticated','public.admin_finish_operation(uuid,uuid,uuid)','EXECUTE'),'caller cannot complete Auth operations');
+set local role anon;
+select pg_temp.expect_error('select public.admin_list_users()','42501','anonymous directory denied');
+reset role;
+select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000004"}',true);
+set local role authenticated;
+select pg_temp.expect_error('select public.admin_list_users()','42501','regular directory denied');
+select pg_temp.expect_error('select public.admin_list_operations()','42501','regular ledger denied');
+reset role;
+select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000005"}',true);
+set local role authenticated;
+select pg_temp.expect_error('select public.admin_list_users()','42501','unrelated staff capability denied');
+reset role;
+select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000003"}',true);
+set local role authenticated;
+select pg_temp.assert_true((public.admin_list_users()->>'total')::int=1,'delegated manager sees only regular users');
+select pg_temp.assert_true((public.admin_list_users()->'users'->0->>'email')='regular@example.test','limited directory includes authorized email');
+select pg_temp.expect_error($s$select public.admin_get_user('50000000-0000-4000-8000-000000000001')$s$,'42501','staff ID guessing denied');
+select pg_temp.expect_error($s$select public.admin_prepare_invite('60000000-0000-4000-8000-000000000001','escalate@example.test','Escalation','admin','{}')$s$,'42501','manager cannot invite admin');
+select pg_temp.expect_error($s$select public.admin_prepare_invite('60000000-0000-4000-8000-000000000001','escalate@example.test','Escalation','user',array['manage_users'])$s$,'22023','ordinary role cannot receive grants');
+select pg_temp.expect_error($s$select public.admin_update_access('50000000-0000-4000-8000-000000000004','admin','{}',true,1,null)$s$,'42501','delegated role editing denied');
+select pg_temp.expect_error($s$select public.admin_prepare_delete('60000000-0000-4000-8000-000000000002','50000000-0000-4000-8000-000000000001')$s$,'42501','delegated staff deletion denied');
+select public.admin_prepare_invite('60000000-0000-4000-8000-000000000003','invited@example.test','Invited user','user','{}');
+select pg_temp.assert_true(public.admin_prepare_invite('60000000-0000-4000-8000-000000000003','invited@example.test','Invited user','user','{}')='60000000-0000-4000-8000-000000000003','invite request replay is idempotent');
+select pg_temp.expect_error($s$select public.admin_prepare_invite('60000000-0000-4000-8000-000000000003','different@example.test','Changed','user','{}')$s$,'23505','request replay cannot change payload');
+reset role;
+select pg_temp.expect_error($s$select public.admin_finish_operation('60000000-0000-4000-8000-000000000003',null,null)$s$,'40001','unclaimed operation cannot be completed with a null lease');
+select set_config('test.lease',(public.admin_claim_operation('60000000-0000-4000-8000-000000000003','50000000-0000-4000-8000-000000000003')->>'lease'),true);
+select pg_temp.expect_error($s$select public.admin_claim_operation('60000000-0000-4000-8000-000000000003','50000000-0000-4000-8000-000000000003')$s$,'55P03','concurrent Auth request lease denied');
+insert into auth.users(id,email,encrypted_password,email_confirmed_at,invited_at) values('50000000-0000-4000-8000-000000000006','invited@example.test','',null,now());
+select pg_temp.assert_true((select not active and account_state='invited' and role='user' from private.user_access where user_id='50000000-0000-4000-8000-000000000006'),'new invitation inactive and unprivileged');
+select pg_temp.expect_error($s$select public.admin_finish_operation('60000000-0000-4000-8000-000000000003',current_setting('test.lease')::uuid,'50000000-0000-4000-8000-000000000004')$s$,'40001','cannot attach an existing account to invitation');
+select public.admin_finish_operation('60000000-0000-4000-8000-000000000003',current_setting('test.lease')::uuid,'50000000-0000-4000-8000-000000000006');
+select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000006"}',true);
+set local role authenticated;
+select pg_temp.assert_true(public.current_account() is null,'pending invited session has no active profile');
+select pg_temp.expect_error('select public.accept_invitation()','42501','unconfirmed/unset-password invitation cannot activate');
+reset role;
+update auth.users set email_confirmed_at=now(),encrypted_password='test-new-hash' where id='50000000-0000-4000-8000-000000000006';
+set local role authenticated;
+select public.accept_invitation();
+select pg_temp.assert_true(public.current_account()->>'role'='user','verified invitation activated');
+select public.accept_invitation();
+reset role;
+
+select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000001"}',true);
+set local role authenticated;
+select pg_temp.assert_true((public.admin_list_users()->>'total')::int=6,'admin can list all account roles');
+select pg_temp.expect_error('select public.admin_list_users(0,10)','22023','directory pagination validation');
+select pg_temp.expect_error($s$select public.admin_update_access('50000000-0000-4000-8000-000000000004','admin','{}',true,1,null)$s$,'42501','direct RPC privilege grant needs server-issued proof');
+select pg_temp.expect_error($s$select public.admin_prepare_delete('60000000-0000-4000-8000-000000000004','50000000-0000-4000-8000-000000000001')$s$,'22023','self-deletion denied');
+reset role;
+select set_config('test.proof',public.admin_issue_reauth('50000000-0000-4000-8000-000000000001','access','50000000-0000-4000-8000-000000000004','{"role":"subadmin","permissions":["view_inquiries"],"active":true,"version":1}')::text,true);
+set local role authenticated;
+select pg_temp.expect_error($s$select public.admin_update_access('50000000-0000-4000-8000-000000000004','admin','{}',true,1,current_setting('test.proof')::uuid)$s$,'42501','proof is bound to exact desired grant');
+select public.admin_update_access('50000000-0000-4000-8000-000000000004','subadmin',array['view_inquiries'],true,1,current_setting('test.proof')::uuid);
+select pg_temp.expect_error($s$select public.admin_update_access('50000000-0000-4000-8000-000000000004','subadmin',array['view_inquiries'],true,1,current_setting('test.proof')::uuid)$s$,'40001','stale access version denied');
+reset role;
+select pg_temp.assert_true(not exists(select 1 from private.reauth_proofs where id=current_setting('test.proof')::uuid),'successful proof is single use');
+select pg_temp.assert_true((select access_version=2 from private.user_access where user_id='50000000-0000-4000-8000-000000000004'),'access versions increment');
+-- Staff invitations require a bound proof and cannot activate before acceptance.
+select set_config('test.proof',public.admin_issue_reauth('50000000-0000-4000-8000-000000000001','invite',null,'{"email":"staff-invite@example.test","name":"Staff invite","role":"subadmin","permissions":["view_inquiries"]}')::text,true);
+update private.reauth_proofs set expires_at=now()-interval '1 second' where id=current_setting('test.proof')::uuid;
+set local role authenticated;
+select pg_temp.expect_error($s$select public.admin_prepare_invite('60000000-0000-4000-8000-000000000007','staff-invite@example.test','Staff invite','subadmin',array['view_inquiries'],current_setting('test.proof')::uuid)$s$,'42501','expired proof cannot authorize a staff invitation');
+reset role;
+select set_config('test.proof',public.admin_issue_reauth('50000000-0000-4000-8000-000000000001','invite',null,'{"email":"staff-invite@example.test","name":"Staff invite","role":"subadmin","permissions":["view_inquiries"]}')::text,true);
+set local role authenticated;
+select public.admin_prepare_invite('60000000-0000-4000-8000-000000000007','staff-invite@example.test','Staff invite','subadmin',array['view_inquiries'],current_setting('test.proof')::uuid);
+reset role;
+select set_config('test.lease',(public.admin_claim_operation('60000000-0000-4000-8000-000000000007','50000000-0000-4000-8000-000000000001')->>'lease'),true);
+insert into auth.users(id,email,encrypted_password,email_confirmed_at,invited_at) values('50000000-0000-4000-8000-000000000007','staff-invite@example.test','',null,now());
+update private.user_access set active=false where user_id='50000000-0000-4000-8000-000000000001';
+select pg_temp.expect_error($s$select public.admin_finish_operation('60000000-0000-4000-8000-000000000007',current_setting('test.lease')::uuid,'50000000-0000-4000-8000-000000000007')$s$,'42501','grantor revocation during Auth call prevents privilege assignment');
+update private.user_access set active=true where user_id='50000000-0000-4000-8000-000000000001';
+select public.admin_finish_operation('60000000-0000-4000-8000-000000000007',current_setting('test.lease')::uuid,'50000000-0000-4000-8000-000000000007');
+select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000007"}',true);
+set local role authenticated;
+select pg_temp.assert_true(not private.has_permission('view_inquiries'),'pending staff grants are ineffective');
+reset role;
+update auth.users set email_confirmed_at=now(),encrypted_password='test-new-hash' where id='50000000-0000-4000-8000-000000000007';
+set local role authenticated;
+select public.accept_invitation();
+select pg_temp.assert_true(private.has_permission('view_inquiries'),'confirmed staff invitation grants intended capability');
+reset role;
+select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000001"}',true);
+
+-- Last-admin guard applies to direct updates and Auth deletion cascades.
+update private.user_access set active=false where user_id='50000000-0000-4000-8000-000000000002';
+select pg_temp.expect_error($s$update private.user_access set active=false where user_id='50000000-0000-4000-8000-000000000001'$s$,'22023','last active admin deactivation denied');
+select pg_temp.expect_error($s$delete from auth.users where id='50000000-0000-4000-8000-000000000001'$s$,'22023','Auth API cascade cannot delete last admin');
+
+-- Delete first revokes access, then survives an external provider failure/retry.
+select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000003"}',true);
+set local role authenticated;
+select public.admin_prepare_delete('60000000-0000-4000-8000-000000000005','50000000-0000-4000-8000-000000000006');
+reset role;
+select pg_temp.assert_true((select not active and account_state='deleting' from private.user_access where user_id='50000000-0000-4000-8000-000000000006'),'deletion revokes access before Auth request');
+select set_config('test.lease',(public.admin_claim_operation('60000000-0000-4000-8000-000000000005','50000000-0000-4000-8000-000000000003')->>'lease'),true);
+select public.admin_fail_operation('60000000-0000-4000-8000-000000000005',current_setting('test.lease')::uuid,'auth_provider_error');
+set local role authenticated;
+select pg_temp.assert_true(jsonb_array_length(public.admin_list_operations())=1,'manager sees own retry work');
+select public.admin_retry_operation('60000000-0000-4000-8000-000000000005');
+reset role;
+select set_config('test.lease',(public.admin_claim_operation('60000000-0000-4000-8000-000000000005','50000000-0000-4000-8000-000000000003')->>'lease'),true);
+select pg_temp.expect_error($s$select public.admin_finish_operation('60000000-0000-4000-8000-000000000005',current_setting('test.lease')::uuid)$s$,'40001','cannot report deletion complete before Auth removes user');
+delete from auth.users where id='50000000-0000-4000-8000-000000000006';
+select public.admin_finish_operation('60000000-0000-4000-8000-000000000005',current_setting('test.lease')::uuid);
+select pg_temp.assert_true((select state='completed' from private.admin_operations where id='60000000-0000-4000-8000-000000000005'),'provider deletion reconciled');
+set local role authenticated;
+select pg_temp.assert_true(public.admin_prepare_delete('60000000-0000-4000-8000-000000000005','50000000-0000-4000-8000-000000000006')='60000000-0000-4000-8000-000000000005','completed deletion replay succeeds after directory row disappears');
+select public.admin_prepare_invite('60000000-0000-4000-8000-000000000008','adopt@example.test','Adopted invite','user','{}');
+reset role;
+select pg_temp.expect_error($s$select public.admin_issue_reauth('50000000-0000-4000-8000-000000000003','retry','60000000-0000-4000-8000-000000000008','{}')$s$,'42501','a delegated manager cannot receive an admin password proof');
+select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000001"}',true);
+set local role authenticated;
+select pg_temp.expect_error($s$select public.admin_retry_operation('60000000-0000-4000-8000-000000000008')$s$,'42501','adopting another actor operation requires reauthentication');
+reset role;
+select set_config('test.proof',public.admin_issue_reauth('50000000-0000-4000-8000-000000000001','retry','60000000-0000-4000-8000-000000000008','{}')::text,true);
+set local role authenticated;
+select public.admin_retry_operation('60000000-0000-4000-8000-000000000008',current_setting('test.proof')::uuid);
+reset role;
+select pg_temp.assert_true((select actor_id='50000000-0000-4000-8000-000000000001' from private.admin_operations where id='60000000-0000-4000-8000-000000000008'),'verified admin can reconcile another manager operation');
+select set_config('test.lease',(public.admin_claim_operation('60000000-0000-4000-8000-000000000008','50000000-0000-4000-8000-000000000001')->>'lease'),true);
+update private.admin_operations set lease_until=now()-interval '1 second' where id='60000000-0000-4000-8000-000000000008';
+select pg_temp.expect_error($s$select public.admin_finish_operation('60000000-0000-4000-8000-000000000008',current_setting('test.lease')::uuid)$s$,'40001','expired lease cannot complete an operation');
+select pg_temp.assert_true((select count(*)>=4 from private.audit_events),'administrative actions audited without passwords');
+select 'PASS: admin directory, delegated restrictions, reauthentication, invitation activation, last-admin guard and Auth failure reconciliation' as result;
+rollback;

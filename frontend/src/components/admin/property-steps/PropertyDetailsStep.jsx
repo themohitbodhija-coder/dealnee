@@ -1,43 +1,26 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FaInfo, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaInfo, FaTimes } from 'react-icons/fa';
 import {
-  PROPERTY_TYPES,
   AMENITIES,
   FACILITIES,
   FURNISHING_STATUS,
-  TENANT_PREFERENCES,
   AREA_UNITS,
   getDisplayLabel,
   isBuyProperty,
   isRentalProperty,
   isCommercialProperty,
-  isNewProject,
-  isResale,
-  isResaleFlat,
   isResaleVilla,
-  isRentalFlat,
-  isRentalVilla,
-  isCommercialSale,
   isCommercialLease,
   isResaleCategory,
-  isNewProjectCategory,
-  isResidentialCategory,
-  isCommercialBuyCategory,
-  isCommercialLeaseCategory,
-  hasResaleSpecificFields,
-  shouldShowFloorDetails,
-  shouldShowVillaFields,
   getFurnishingItems,
   getOutdoorFeatures,
   getBusinessSuitableFor,
-  getProjectStatusOptions,
   getApprovalTypes,
   getOwnershipTypes,
   getFacingDirections,
 } from '../../../constants/propertyConstants';
 import {
   createFieldUpdateAction,
-  createNestedFieldUpdateAction,
   createAmenityUpdateAction,
   createFacilityUpdateAction,
   createFurnishingItemUpdateAction,
@@ -99,13 +82,6 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
   const handleFieldChange = useCallback(
     (section, field, value) => {
       dispatch(createFieldUpdateAction(section, field, value));
-    },
-    [dispatch]
-  );
-
-  const handleNestedFieldChange = useCallback(
-    (section, nested, field, value) => {
-      dispatch(createNestedFieldUpdateAction(section, nested, field, value));
     },
     [dispatch]
   );

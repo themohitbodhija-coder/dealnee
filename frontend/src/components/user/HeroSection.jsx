@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { FaArrowRight } from 'react-icons/fa';
 
@@ -69,17 +69,17 @@ const HeroSection = () => {
     setIsAutoSlide(false);
   };
 
-  const nextSlide = () => {
+  const nextSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
     setProgress(0);
     setIsAutoSlide(false);
-  };
+  }, [slides.length]);
 
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
     setProgress(0);
     setIsAutoSlide(false);
-  };
+  }, [slides.length]);
 
   // Resume auto-slide after manual navigation
   useEffect(() => {
@@ -151,7 +151,7 @@ const HeroSection = () => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
+  }, [nextSlide, prevSlide]);
 
   return (
     <div className="relative w-full h-screen md:h-[600px] overflow-hidden group bg-black">

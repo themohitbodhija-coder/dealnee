@@ -1,3 +1,5 @@
+import { createPropertyMutations } from './propertyMutations';
+import { createInquiryService } from './inquiries';
 // Existing response envelopes stay at this boundary. No Express calls in this mode.
 export function apiError(error) {
   const status = error.status || (error.code === '42501' ? 403 : error.code === 'P0002' ? 404 : 400);
@@ -17,7 +19,12 @@ export function createSupabaseApi(getClient) {
     const { data, error } = await getClient().auth.getSession();
     if (error) throw apiError(error);
     if (!data.session) return envelope({ user: null });
-    const response = await rpc('current_account');
+    let response = await rpc('current_account');
+    if (!response.data) {
+      // Only the DB can activate a completed, confirmed invitation with a password.
+      await rpc('accept_invitation');
+      response = await rpc('current_account');
+    }
     if (!response.data) throw apiError({ status: 403, message: 'Your account is unavailable. Please contact support.' });
     return envelope({ user: { ...response.data, _id: response.data.id, email: data.session.user.email } });
   };
@@ -65,6 +72,12 @@ export function createSupabaseApi(getClient) {
       if (error) throw apiError(error);
       return envelope({});
     },
+    async verifyInvitation(tokenHash) {
+      if (!/^[a-zA-Z0-9_-]{20,512}$/.test(tokenHash || '')) throw apiError({ status: 400, message: 'Invalid invitation link.' });
+      const { error } = await getClient().auth.verifyOtp({ token_hash: tokenHash, type: 'invite' });
+      if (error) throw apiError(error);
+    },
+    activateInvitation: () => rpc('accept_invitation'),
     subscribe(listener) {
       const { data } = getClient().auth.onAuthStateChange((event, session) => listener(event, session));
       return () => data.subscription.unsubscribe();
@@ -76,6 +89,15 @@ export function createSupabaseApi(getClient) {
     return envelope({ categories: data.map(c => ({ ...c, _id: c.id, createdAt: c.created_at,
       parentCategory: data.find(parent => parent.id === c.parent_id)?.name || 'none' })) });
   };
+  const adminInvoke = async body => {
+    const { data, error } = await getClient().functions.invoke('admin-users', { body });
+    if (error) {
+      let detail;
+      try { detail = await error.context?.json(); } catch (_) { /* No readable provider response. */ }
+      throw apiError({ status: error.context?.status || 503, message: detail?.error || 'Account service is unavailable. Please try again.' });
+    }
+    return envelope(data);
+  };
   return {
     authService,
     propertyService: {
@@ -84,7 +106,7 @@ export function createSupabaseApi(getClient) {
       getFeatured: () => rpc('featured_properties'),
       getById: id => rpc('get_property', { p_id: id }),
       search: q => rpc('search_properties', { p_query: q }),
-      create: unavailable, update: unavailable, delete: unavailable, getNextSequentialId: unavailable,
+      ...createPropertyMutations(getClient, apiError), getNextSequentialId: unavailable,
     },
     categoryService: {
       getAll: categories,
@@ -95,7 +117,15 @@ export function createSupabaseApi(getClient) {
       },
       create: unavailable, update: unavailable, delete: unavailable,
     },
-    inquiryService: { create: unavailable, getAll: unavailable, getById: unavailable, updateStatus: unavailable, delete: unavailable },
-    adminService: { getDashboardStats: unavailable, getAllUsers: unavailable, createUser: unavailable, deleteUser: unavailable },
+    inquiryService: createInquiryService(getClient, apiError),
+    adminService: {
+      getDashboardStats: unavailable,
+      getAllUsers: (params = {}) => adminInvoke({ ...params, action: 'list' }),
+      createUser: data => adminInvoke({ ...data, action: 'invite' }),
+      deleteUser: (id, options = {}) => adminInvoke({ ...options, action: 'delete', targetId: id }),
+      updateUserAccess: (id, data) => adminInvoke({ ...data, action: 'access', targetId: id }),
+      getOperations: () => adminInvoke({ action: 'operations' }),
+      retryOperation: (id, password) => adminInvoke({ action: 'retry', operationId: id, ...(password && { password }) }),
+    },
   };
 }

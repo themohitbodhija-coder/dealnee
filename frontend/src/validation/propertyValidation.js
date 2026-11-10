@@ -10,14 +10,7 @@ import {
   isRentalProperty,
   isCommercialProperty,
   isNewProject,
-  isResale,
-  isResaleFlat,
-  isResaleVilla,
   isRentalFlat,
-  isRentalVilla,
-  isRentalIndividualFloor,
-  isCommercialSale,
-  isCommercialLease,
   isResaleCategory,
 } from '../constants/propertyConstants';
 

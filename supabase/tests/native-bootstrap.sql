@@ -6,6 +6,10 @@ create schema auth;
 create table auth.users (
   id uuid primary key,
   email text,
+  encrypted_password text default 'test-password-hash',
+  email_confirmed_at timestamptz default now(),
+  invited_at timestamptz,
+  created_at timestamptz default now(),
   raw_user_meta_data jsonb not null default '{}'
 );
 create function auth.uid() returns uuid language sql stable as $$

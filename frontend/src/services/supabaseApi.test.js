@@ -49,10 +49,9 @@ test('catalog adapter uses RPC envelopes and never sends staff mode for public r
   await propertyService.getAdminAll({ page: 2 });
   expect(client.rpc).toHaveBeenLastCalledWith('list_properties', { p_filters: { page: 2 }, p_admin: true });
 });
-test('unfinished mutations fail closed instead of falling back to Express', async () => {
-  const { client, propertyService, inquiryService } = fixture();
-  await expect(propertyService.create({})).rejects.toMatchObject({ status: 503 });
-  await expect(inquiryService.create({})).rejects.toMatchObject({ status: 503 });
+test('unfinished category editor mutations fail closed instead of falling back to Express', async () => {
+  const { client, categoryService } = fixture();
+  await expect(categoryService.create({})).rejects.toMatchObject({ status: 503 });
   expect(client.rpc).not.toHaveBeenCalled();
 });
 test('database permission errors keep a useful transport-independent status', async () => {
@@ -71,4 +70,28 @@ test('failed server logout still attempts to remove the local SDK session', asyn
   await expect(authService.logout()).rejects.toMatchObject({ status: 503 });
   expect(client.auth.signOut).toHaveBeenNthCalledWith(1, { scope: 'global' });
   expect(client.auth.signOut).toHaveBeenNthCalledWith(2, { scope: 'local' });
+});
+
+test('admin adapter invokes the protected Edge Function with action and request ID', async () => {
+  const { client,adminService } = fixture();
+  client.functions = { invoke:jest.fn().mockResolvedValue({ data:{ operationId:'request-id',completed:true } }) };
+  await adminService.createUser({ name:'Invitee',email:'invitee@example.test',role:'user',permissions:[],requestId:'request-id' });
+  expect(client.functions.invoke).toHaveBeenCalledWith('admin-users',{ body:{ action:'invite',name:'Invitee',email:'invitee@example.test',role:'user',permissions:[],requestId:'request-id' } });
+});
+test('admin adapter reads safe Edge error status instead of treating an HTTP error as success', async () => {
+  const { client,adminService } = fixture();
+  client.functions = { invoke:jest.fn().mockResolvedValue({ error:{ context:{ status:409,json:async() => ({ error:'Account changed; reload.' }) } } }) };
+  await expect(adminService.updateUserAccess('target',{})).rejects.toMatchObject({ status:409,message:'Account changed; reload.' });
+});
+test('invitation confirmation verifies only invite token hashes', async () => {
+  const { client,authService } = fixture();
+  client.auth.verifyOtp = jest.fn().mockResolvedValue({});
+  await authService.verifyInvitation('synthetic-invitation-token-hash');
+  expect(client.auth.verifyOtp).toHaveBeenCalledWith({ token_hash:'synthetic-invitation-token-hash',type:'invite' });
+  await expect(authService.verifyInvitation('bad')).rejects.toMatchObject({ status:400 });
+});
+test('account activation goes through the server invitation gate', async () => {
+  const { client,authService } = fixture();
+  await authService.activateInvitation();
+  expect(client.rpc).toHaveBeenCalledWith('accept_invitation',undefined);
 });

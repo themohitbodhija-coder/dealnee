@@ -1,6 +1,8 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { FaImage, FaTrash, FaPlus, FaTimes, FaStar, FaRegStar } from 'react-icons/fa';
 import { processMultipleImages } from '../../../utils/propertyFormUtils';
+import { usesSupabase } from '../../../lib/backend';
+import { uploadPropertyImage } from '../../../services/photoService';
 import { getImageUrl } from '../../../utils/imageUrl';
 import {
   createAddImageAction,
@@ -8,10 +10,16 @@ import {
   createSetCoverImageAction,
 } from '../../../reducers/propertyFormReducer';
 
-const ImagesStep = ({ formData, dispatch, errors = {} }) => {
+const ImagesStep = ({ formData, dispatch, errors = {}, propertyId, createSessionId, onUploadingChange }) => {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = React.useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const uploadLock = useRef(false);
+  const controller = useRef(null);
+  useEffect(() => () => {
+    controller.current?.abort();
+  }, []);
 
   // Show error modal when errors change
   useEffect(() => {
@@ -25,30 +33,47 @@ const ImagesStep = ({ formData, dispatch, errors = {} }) => {
       const files = Array.from(e.target.files || []);
       if (files.length === 0) return;
 
+      if (uploadLock.current) return;
+      uploadLock.current = true;
+      controller.current = new AbortController();
       setUploading(true);
+      setUploadError('');
+      onUploadingChange?.(true);
       try {
         const remainingSlots = 20 - formData.images.length;
         const filesToProcess = files.slice(0, remainingSlots);
-
-        const { results, errors } = await processMultipleImages(filesToProcess);
-        
-        if (errors && errors.length > 0) {
-          console.warn('Some images failed to process:', errors);
-        }
-        
-        if (results && results.length > 0) {
-          dispatch(createAddImageAction(results));
+        if (files.length > remainingSlots) setUploadError('Only the first available image slots will be uploaded.');
+        if (usesSupabase) {
+          // One decode per request; avoid concurrent large WASM allocations.
+          for (const file of filesToProcess) {
+            try {
+              const image = await uploadPropertyImage(file, {
+                propertyId: propertyId || formData.id || formData._id || null,
+                createSessionId: (propertyId || formData.id || formData._id) ? null : (createSessionId || formData.createSessionId),
+                signal: controller.current.signal,
+              });
+              if (controller.current.signal.aborted) break;
+              dispatch(createAddImageAction([image]));
+            } catch (error) {
+              if (error.name === 'AbortError') break;
+              setUploadError(`${file.name}: ${error.message} Select this file again to retry.`);
+            }
+          }
+        } else {
+          const { results, errors: processingErrors } = await processMultipleImages(filesToProcess);
+          if (processingErrors?.length) setUploadError('Some images could not be processed. Select them again to retry.');
+          if (results?.length) dispatch(createAddImageAction(results));
         }
       } catch (error) {
-        console.error('Error uploading images:', error);
+        if (error.name !== 'AbortError') setUploadError(error.message);
       } finally {
+        uploadLock.current = false;
         setUploading(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+        onUploadingChange?.(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
     },
-    [formData.images.length, dispatch]
+    [formData.images.length, formData.id, formData._id, formData.createSessionId, propertyId, createSessionId, dispatch, onUploadingChange]
   );
 
   const handleRemoveImage = useCallback(
@@ -149,7 +174,7 @@ const ImagesStep = ({ formData, dispatch, errors = {} }) => {
               ? 'border-blue-300 bg-blue-50'
               : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
           }`}
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => !uploading && fileInputRef.current?.click()}
         >
           <FaPlus className="text-4xl text-gray-400 mx-auto mb-3" />
           <p className="text-lg font-semibold text-gray-700 mb-1">
@@ -162,7 +187,7 @@ const ImagesStep = ({ formData, dispatch, errors = {} }) => {
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/*"
+            accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
             onChange={handleFileSelect}
             disabled={uploading}
             className="hidden"
@@ -170,6 +195,7 @@ const ImagesStep = ({ formData, dispatch, errors = {} }) => {
         </div>
       )}
 
+      {uploadError && <p role="alert" className="p-3 bg-red-50 text-red-700 rounded-lg">{uploadError}</p>}
       {errors.images && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-red-700 text-sm">{errors.images}</p>
@@ -220,6 +246,8 @@ const ImagesStep = ({ formData, dispatch, errors = {} }) => {
 
                   {/* Remove button */}
                   <button
+                    type="button"
+                    disabled={uploading}
                     onClick={() => handleRemoveImage(index)}
                     className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition transform hover:scale-110"
                     title="Remove image"
@@ -230,6 +258,8 @@ const ImagesStep = ({ formData, dispatch, errors = {} }) => {
                   {/* Set as cover button (only for non-cover images) */}
                   {!isCover && (
                     <button
+                      type="button"
+                      disabled={uploading}
                       onClick={() => handleSetCoverImage(index)}
                       className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white/90 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow hover:bg-white"
                       title="Set as cover image"

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FaFilter, FaTimes, FaSearch, FaChevronDown } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { FaFilter, FaTimes, FaChevronDown } from 'react-icons/fa';
 
 const FilterBar = ({ onFilterChange, categories, propertyType, propertySubtype, propertyCategory }) => {
   const [filters, setFilters] = useState({

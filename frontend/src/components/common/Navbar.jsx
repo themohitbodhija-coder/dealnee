@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaUser, FaSignOutAlt, FaBars, FaTimes, FaPhone, FaEnvelope, FaChevronDown, FaHome, FaShoppingCart, FaStore, FaBuilding, FaKey, FaSearch, FaMapMarkerAlt, FaRupeeSign } from 'react-icons/fa';
+import { FaUser, FaSignOutAlt, FaBars, FaTimes, FaPhone, FaEnvelope, FaChevronDown, FaShoppingCart, FaBuilding, FaKey, FaSearch, FaMapMarkerAlt, FaRupeeSign } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Navbar = () => {
@@ -10,9 +10,6 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isPropertyDropdownOpen, setIsPropertyDropdownOpen] = useState(false);
-  const [isBuySubmenuOpen, setIsBuySubmenuOpen] = useState(false);
-  const [isNewProjectsSubmenuOpen, setIsNewProjectsSubmenuOpen] = useState(false);
-  const [isCommercialSubmenuOpen, setIsCommercialSubmenuOpen] = useState(false);
   const [isMobileBuySubmenuOpen, setIsMobileBuySubmenuOpen] = useState(false);
   const [isMobileNewProjectsSubmenuOpen, setIsMobileNewProjectsSubmenuOpen] = useState(false);
   const [isMobileCommercialSubmenuOpen, setIsMobileCommercialSubmenuOpen] = useState(false);

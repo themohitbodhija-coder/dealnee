@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Slider from 'react-slick';
 import { Link } from 'react-router-dom';
 import { propertyService } from '../../services/api';
@@ -115,24 +115,6 @@ const DEVELOPERS = [
 ];
 
 // ==================== SLIDER SETTINGS ====================
-const FEATURED_SLIDER_SETTINGS = {
-  dots: true,
-  infinite: true,
-  speed: 800,
-  slidesToShow: 4,
-  slidesToScroll: 1,
-  autoplay: true,
-  autoplaySpeed: 5000,
-  swipe: true,
-  touchMove: true,
-  swipeToSlide: true,
-  responsive: [
-    { breakpoint: 1024, settings: { slidesToShow: 3 } },
-    { breakpoint: 768, settings: { slidesToShow: 2 } },
-    { breakpoint: 640, settings: { slidesToShow: 1 } }
-  ]
-};
-
 const DEVELOPER_SLIDER_SETTINGS = {
   dots: false,
   infinite: true,

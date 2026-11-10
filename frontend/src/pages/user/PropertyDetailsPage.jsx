@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { propertyService, inquiryService } from '../../services/api';
+import { propertyService } from '../../services/api';
 import { FaMapMarkerAlt, FaBed, FaBath, FaRuler, FaPhone, FaEnvelope, FaArrowLeft, FaCheckCircle, FaTag, FaInfo } from 'react-icons/fa';
+import InquiryForm from '../../components/user/InquiryForm';
 import ImageLightbox from '../../components/user/ImageLightbox';
 import { getImageUrl } from '../../utils/imageUrl';
 import AmenityIcons from '../../components/icons/AmenityIcons';
@@ -19,53 +20,24 @@ const PropertyDetailsPage = () => {
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [showContactForm, setShowContactForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: '',
-  });
-  const [submitting, setSubmitting] = useState(false);
-
   useEffect(() => {
+    let active = true;
     window.scrollTo(0, 0);
+    setLoading(true);
+    setProperty(null);
+    const fetchProperty = async () => {
+      try {
+        const response = await propertyService.getById(id);
+        if (active) setProperty(response.data.property);
+      } catch (error) {
+        console.error('Error fetching property:', error);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
     fetchProperty();
+    return () => { active = false; };
   }, [id]);
-
-  const fetchProperty = async () => {
-    try {
-      const response = await propertyService.getById(id);
-      setProperty(response.data.property);
-    } catch (error) {
-      console.error('Error fetching property:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmitInquiry = async (e) => {
-    e.preventDefault();
-    try {
-      setSubmitting(true);
-      await inquiryService.create({
-        ...formData,
-        property: id,
-      });
-      alert('Inquiry sent successfully!');
-      setFormData({ name: '', email: '', phone: '', message: '' });
-      setShowContactForm(false);
-    } catch (error) {
-      alert('Error sending inquiry. Please try again.');
-      console.error('Error:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const openLightbox = (index) => {
     setLightboxIndex(index);
@@ -689,50 +661,7 @@ const PropertyDetailsPage = () => {
 
               {/* Contact Form */}
               {showContactForm && (
-                <form onSubmit={handleSubmitInquiry} className="space-y-4">
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Your Name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-red-500"
-                  />
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Your Email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-red-500"
-                  />
-                  <input
-                    type="tel"
-                    name="phone"
-                    placeholder="Your Phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-red-500"
-                  />
-                  <textarea
-                    name="message"
-                    placeholder="Your Message"
-                    value={formData.message}
-                    onChange={handleInputChange}
-                    required
-                    rows="4"
-                    className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:border-red-500"
-                  ></textarea>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full px-4 py-3 bg-green-600 text-white rounded hover:bg-green-700 transition font-semibold disabled:bg-gray-400"
-                  >
-                    {submitting ? 'Sending...' : 'Submit Inquiry'}
-                  </button>
-                </form>
+                <InquiryForm key={id} propertyId={id} submitLabel="Submit Inquiry" />
               )}
             </div>
           </div>

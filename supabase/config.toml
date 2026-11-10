@@ -149,7 +149,7 @@ enabled = true
 # in emails.
 site_url = "http://localhost:3001"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3001/auth/callback", "http://localhost:3001/reset-password"]
+additional_redirect_urls = ["http://localhost:3001/auth/callback", "http://localhost:3001/reset-password", "http://localhost:3001/accept-invite"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
@@ -382,3 +382,29 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+[functions.admin-users]
+verify_jwt = true
+
+[auth.email.template.invite]
+subject = "Your Dealinee invitation"
+content_path = "./supabase/templates/invite.html"
+
+# Public endpoint independently validates input and transactional abuse limits.
+[functions.submit-inquiry]
+verify_jwt = false
+
+[functions.property-save]
+verify_jwt = true
+
+[functions.property-delete]
+verify_jwt = true
+
+[functions.photo-uploads]
+verify_jwt = true
+# WASM is explicitly bundled; no runtime download or public decoder endpoint.
+static_files = ["./functions/photo-uploads/vendor/magick.wasm"]
+
+# Dedicated scheduler credential is verified inside the handler.
+[functions.photo-cleanup]
+verify_jwt = false

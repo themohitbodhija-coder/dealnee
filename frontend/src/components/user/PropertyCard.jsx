@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaMapMarkerAlt, FaBed, FaBath, FaRuler, FaHeart, FaRegHeart, FaEye, FaCamera, FaArrowRight } from 'react-icons/fa';
+import { FaBed, FaBath, FaRuler, FaHeart, FaRegHeart, FaCamera, FaArrowRight } from 'react-icons/fa';
 import { getImageUrl } from '../../utils/imageUrl';
 import { getPropertyRoomStats, getPropertyLocationLabel } from '../../utils/propertyFormUtils';
 
 const PropertyCard = ({ property, onWishlistToggle, isWishlisted }) => {
   const [imageError, setImageError] = React.useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+  const currentImageIndex = 0;
 
   // Get property type from subcategory or category
   const getPropertyType = () => {

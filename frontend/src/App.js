@@ -17,6 +17,7 @@ import CarrierPage from './pages/user/CarrierPage';
 import ForgotPasswordPage from './pages/user/ForgotPasswordPage';
 import ResetPasswordPage from './pages/user/ResetPasswordPage';
 import AuthCallbackPage from './pages/user/AuthCallbackPage';
+import AcceptInvitePage from './pages/user/AcceptInvitePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import ManagePropertiesPage from './pages/admin/ManagePropertiesPage';
 import ManageCategoriesPage from './pages/admin/ManageCategoriesPage';
@@ -45,6 +46,7 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path="/accept-invite" element={<AcceptInvitePage />} />
     </Route>
     <Route path="/admin" element={<AdminLayout />}>
       <Route index element={<Navigate to="dashboard" replace />} />

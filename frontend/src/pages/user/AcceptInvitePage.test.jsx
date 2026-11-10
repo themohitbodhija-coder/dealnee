@@ -1,0 +1,53 @@
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import { Simulate } from 'react-dom/test-utils';
+import { MemoryRouter,useNavigate } from 'react-router-dom';
+import AcceptInvitePage from './AcceptInvitePage';
+import { useAuth } from '../../contexts/AuthContext';
+import { authService } from '../../services/api';
+jest.mock('../../lib/backend',() => ({ usesSupabase:true }));
+jest.mock('../../services/api',() => ({ authService:{ verifyInvitation:jest.fn(),updatePassword:jest.fn(),activateInvitation:jest.fn() } }));
+jest.mock('../../contexts/AuthContext',() => ({ useAuth:jest.fn(),canAccess:user => user.role==='admin' }));
+jest.mock('react-router-dom',() => ({ ...jest.requireActual('react-router-dom'),useNavigate:jest.fn() }));
+let root,container,navigate,refresh;
+beforeEach(() => {
+  global.IS_REACT_ACT_ENVIRONMENT=true;
+  jest.clearAllMocks();
+  navigate=jest.fn(); refresh=jest.fn().mockResolvedValue({ role:'user' });
+  useNavigate.mockReturnValue(navigate); useAuth.mockReturnValue({ refresh });
+  authService.verifyInvitation.mockResolvedValue({}); authService.updatePassword.mockResolvedValue({}); authService.activateInvitation.mockResolvedValue({});
+  window.history.replaceState({},'','/accept-invite?token_hash=synthetic-invitation-token-hash&type=invite');
+  container=document.createElement('div'); document.body.appendChild(container); root=createRoot(container);
+});
+afterEach(() => { act(() => root.unmount()); container.remove(); window.history.replaceState({},'','/'); });
+const render=() => act(async() => { root.render(<MemoryRouter future={{ v7_startTransition:true,v7_relativeSplatPath:true }}><AcceptInvitePage /></MemoryRouter>); });
+const click=element => act(async() => { Simulate.click(element); });
+const change=(element,value) => act(async() => { Simulate.change(element,{ target:{ value } }); });
+test('email links are not consumed on page load and token is removed before verification',async() => {
+  await render(); expect(authService.verifyInvitation).not.toHaveBeenCalled();
+  await click(container.querySelector('button'));
+  expect(window.location.search).toBe('');
+  expect(authService.verifyInvitation).toHaveBeenCalledWith('synthetic-invitation-token-hash');
+  expect(container.querySelectorAll('input[type="password"]').length).toBe(2);
+});
+test('recipient chooses a password before activation and failed activation can retry without resetting it',async() => {
+  authService.activateInvitation.mockRejectedValueOnce(new Error('Invitation is still being prepared.')).mockResolvedValue({});
+  await render(); await click(container.querySelector('button'));
+  const inputs=container.querySelectorAll('input');
+  await change(inputs[0],'synthetic-new-password'); await change(inputs[1],'synthetic-new-password');
+  await act(async() => { Simulate.submit(container.querySelector('form'),{ preventDefault:() => {} }); });
+  expect(authService.updatePassword).toHaveBeenCalledTimes(1);
+  expect(navigate).not.toHaveBeenCalled();
+  expect(container.textContent).toContain('Finish account setup');
+  await act(async() => { Simulate.submit(container.querySelector('form'),{ preventDefault:() => {} }); });
+  expect(authService.updatePassword).toHaveBeenCalledTimes(1);
+  expect(authService.activateInvitation).toHaveBeenCalledTimes(2);
+  expect(navigate).toHaveBeenCalledWith('/',{ replace:true });
+});
+test('expired invitation has a controlled error and grants no access',async() => {
+  authService.verifyInvitation.mockRejectedValue(new Error('provider details'));
+  await render(); await click(container.querySelector('button'));
+  expect(container.textContent).toContain('invalid or has expired');
+  expect(container.textContent).not.toContain('provider details');
+  expect(authService.activateInvitation).not.toHaveBeenCalled();
+});

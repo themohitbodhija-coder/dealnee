@@ -35,11 +35,12 @@ const ManagePropertiesPage = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this property?')) {
       try {
-        await propertyService.delete(id);
+        const property = properties.find(item => item._id === id);
+        await propertyService.delete(id, { version: property?.version });
         alert('Property deleted successfully!');
         fetchProperties();
       } catch (error) {
-        alert('Error deleting property');
+        alert(error.response?.data?.message || 'Error deleting property');
       }
     }
   };
@@ -74,7 +75,6 @@ const ManagePropertiesPage = () => {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Manage Properties</h1>
         <button
-          disabled={usesSupabase}
           onClick={() => {
             setEditingProperty(null);
             setShowAddPropertyForm(true);
@@ -149,15 +149,13 @@ const ManagePropertiesPage = () => {
                   </td>
                   <td className="px-6 py-3 flex space-x-2">
                     <button
-                      disabled={usesSupabase}
-                      onClick={() => handleEdit(property)}
+                                  onClick={() => handleEdit(property)}
                       className="text-red-600 hover:text-red-800"
                     >
                       <FaEdit />
                     </button>
                     <button
-                      disabled={usesSupabase}
-                      onClick={() => handleDelete(property._id)}
+                                  onClick={() => handleDelete(property._id)}
                       className="text-red-600 hover:text-red-800"
                     >
                       <FaTrash />

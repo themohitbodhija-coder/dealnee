@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { usesSupabase } from '../../lib/backend';
+import SupabaseManageUsersPage from './SupabaseManageUsersPage';
 import { adminService } from '../../services/api';
 import { FaTrash } from 'react-icons/fa';
 import { FaPlus } from 'react-icons/fa';
 
-const ManageUsersPage = () => {
+const LegacyManageUsersPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [page]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await adminService.getAllUsers({ page, limit: 10 });
       setUsers(response.data.users);
@@ -23,7 +21,11 @@ const ManageUsersPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
@@ -236,4 +238,6 @@ const ManageUsersPage = () => {
   );
 };
 
-export default ManageUsersPage;
+export default function ManageUsersPage() {
+  return usesSupabase ? <SupabaseManageUsersPage /> : <LegacyManageUsersPage />;
+}

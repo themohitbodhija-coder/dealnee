@@ -33,7 +33,10 @@ export const saveFormToLocalStorage = (formData) => {
       ...formData,
       images: (formData.images || []).map((img) => ({
         // Keep preview and name, but exclude the File object
-        preview: img.preview,
+        preview: img.preview?.startsWith('blob:') || img.preview?.startsWith('data:') ? '' : img.preview || '',
+        ...(img.uploadId ? { uploadId: img.uploadId, uploadState: img.uploadState } : {}),
+        ...(img.id ? { id: img.id } : {}),
+        ...(img.url ? { url: img.url } : {}),
         name: img.name,
         size: img.size,
         type: img.type,
@@ -413,7 +416,6 @@ export const transformFormDataForSubmission = (formData, userId) => {
     location = {},
     contact = {},
     propertyDetails = {},
-    images = [],
     resaleInfo = {},
     rentalInfo = {},
     commercialDetails = {},

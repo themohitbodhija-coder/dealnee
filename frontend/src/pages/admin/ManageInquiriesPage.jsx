@@ -1,174 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { inquiryService } from '../../services/api';
-import { FaEye, FaTrash } from 'react-icons/fa';
-
-const ManageInquiriesPage = () => {
-  const [inquiries, setInquiries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [selectedInquiry, setSelectedInquiry] = useState(null);
-
-  useEffect(() => {
-    fetchInquiries();
-  }, [page]);
-
-  const fetchInquiries = async () => {
+const message=error=>error.response?.data?.message || error.message || 'Unable to load inquiries. Please try again.';
+export default function ManageInquiriesPage() {
+  const [inquiries,setInquiries]=useState([]),[selected,setSelected]=useState(null);
+  const [page,setPage]=useState(1),[status,setStatus]=useState(''),[totalPages,setTotalPages]=useState(0);
+  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const sequence=useRef(0);
+  const load=useCallback(async()=>{
+    const seq=++sequence.current;setLoading(true);setError('');setInquiries([]);
     try {
-      const response = await inquiryService.getAll({ page, limit: 10 });
-      setInquiries(response.data.inquiries);
-      setTotalPages(response.data.pages);
-    } catch (error) {
-      console.error('Error fetching inquiries:', error);
-    } finally {
-      setLoading(false);
-    }
+      const {data}=await inquiryService.getAll({page,limit:10,status});
+      if (sequence.current!==seq) return;
+      if (page>Math.max(1,data.totalPages)) {setPage(Math.max(1,data.totalPages));return;}
+      setInquiries(data.inquiries);setTotalPages(data.totalPages);
+    } catch (failure) {if (sequence.current===seq) setError(message(failure));}
+    finally {if (sequence.current===seq) setLoading(false);}
+  },[page,status]);
+  const invalidate=useCallback(()=>{sequence.current++;},[]);
+  useEffect(()=>{load();return invalidate;},[load,invalidate]);
+  const act=async operation=>{if (busy) return;setBusy(true);setError('');try {await operation();} catch (failure) {setError(message(failure));} finally {setBusy(false);}};
+  const open=id=>act(async()=>{
+    const {data}=await inquiryService.getById(id);setSelected(data.inquiry);
+    setInquiries(rows=>rows.map(row=>row._id===id?data.inquiry:row));
+    // Reading changes the filtered total as well as the row itself.
+    if (status==='new') await load();
+  });
+  const change=(id,value)=>act(async()=>{await inquiryService.updateStatus(id,{status:value});await load();});
+  const remove=id=>{
+    if (!window.confirm('Delete this inquiry permanently?')) return;
+    act(async()=>{await inquiryService.delete(id);if (selected?._id===id) setSelected(null);await load();});
   };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this inquiry?')) {
-      try {
-        await inquiryService.delete(id);
-        alert('Inquiry deleted successfully!');
-        fetchInquiries();
-      } catch (error) {
-        alert('Error deleting inquiry');
-      }
-    }
-  };
-
-  const handleStatusChange = async (id, status) => {
-    try {
-      await inquiryService.updateStatus(id, { status });
-      alert('Status updated successfully!');
-      fetchInquiries();
-    } catch (error) {
-      alert('Error updating status');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">Manage Inquiries</h1>
-
-      {/* Inquiries Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100 border-b">
-              <tr className="text-left">
-                <th className="px-6 py-3 font-semibold text-gray-700">Name</th>
-                <th className="px-6 py-3 font-semibold text-gray-700">Email</th>
-                <th className="px-6 py-3 font-semibold text-gray-700">Property</th>
-                <th className="px-6 py-3 font-semibold text-gray-700">Status</th>
-                <th className="px-6 py-3 font-semibold text-gray-700">Date</th>
-                <th className="px-6 py-3 font-semibold text-gray-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inquiries.map((inquiry) => (
-                <tr key={inquiry._id} className="border-b hover:bg-gray-50">
-                  <td className="px-6 py-3">{inquiry.name}</td>
-                  <td className="px-6 py-3">{inquiry.email}</td>
-                  <td className="px-6 py-3">{inquiry.property?.title || 'General'}</td>
-                  <td className="px-6 py-3">
-                    <select
-                      value={inquiry.status}
-                      onChange={(e) => handleStatusChange(inquiry._id, e.target.value)}
-                      className={`px-3 py-1 rounded text-xs font-semibold border-0 ${
-                        inquiry.status === 'new' ? 'bg-red-100 text-red-800' :
-                        inquiry.status === 'read' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      <option value="new">New</option>
-                      <option value="read">Read</option>
-                      <option value="replied">Replied</option>
-                    </select>
-                  </td>
-                  <td className="px-6 py-3">{new Date(inquiry.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-3 flex space-x-2">
-                    <button
-                      onClick={() => setSelectedInquiry(inquiry)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <FaEye />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(inquiry._id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <FaTrash />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center space-x-2 mt-8">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-            <button
-              key={num}
-              onClick={() => setPage(num)}
-              className={`px-4 py-2 rounded ${
-                page === num
-                  ? 'bg-red-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {num}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Detail Modal */}
-      {selectedInquiry && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Inquiry Details</h2>
-            <div className="space-y-4">
-              <div>
-                <p className="text-gray-600 text-sm">Name</p>
-                <p className="text-gray-800 font-semibold">{selectedInquiry.name}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Email</p>
-                <p className="text-gray-800 font-semibold">{selectedInquiry.email}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Phone</p>
-                <p className="text-gray-800 font-semibold">{selectedInquiry.phone || '-'}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Message</p>
-                <p className="text-gray-800 font-semibold">{selectedInquiry.message}</p>
-              </div>
-              <button
-                onClick={() => setSelectedInquiry(null)}
-                className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default ManageInquiriesPage;
+  return <div className="p-6">
+    <h1 className="text-3xl font-bold mb-6">Manage Inquiries</h1>
+    <label className="block mb-4">Status <select aria-label="Filter inquiry status" value={status} disabled={busy} onChange={e=>{setStatus(e.target.value);setPage(1);setSelected(null);}} className="border rounded p-2">
+      <option value="">All</option><option value="new">New</option><option value="read">Read</option><option value="replied">Replied</option>
+    </select></label>
+    {error && <div role="alert" className="p-4 bg-red-100 text-red-800 mb-4">{error} <button onClick={load} disabled={busy}>Retry</button></div>}
+    {loading ? <p role="status">Loading inquiries...</p> : <div className="overflow-x-auto bg-white rounded shadow"><table className="w-full text-sm">
+      <thead className="bg-gray-100"><tr>{['Name','Email','Property','Status','Date','Actions'].map(label=><th key={label} className="text-left p-3">{label}</th>)}</tr></thead>
+      <tbody>{inquiries.map(row=><tr key={row._id} className="border-b">
+        <td className="p-3">{row.name}</td><td className="p-3">{row.email}</td><td className="p-3">{row.property?.title || 'General'}{row.property?.propertyId && <span className="block">{row.property.propertyId}</span>}</td>
+        <td className="p-3"><select aria-label={`Status for ${row.name}`} value={row.status} disabled={busy} onChange={e=>change(row._id,e.target.value)}><option value="new">New</option><option value="read">Read</option><option value="replied">Replied</option></select></td>
+        <td className="p-3">{new Date(row.createdAt).toLocaleDateString()}</td><td className="p-3"><button disabled={busy} onClick={()=>open(row._id)} className="text-red-700 mr-4">View</button><button disabled={busy} onClick={()=>remove(row._id)} className="text-red-700">Delete</button></td>
+      </tr>)}</tbody>
+    </table>{!inquiries.length && !error && <p className="p-6">No inquiries found.</p>}</div>}
+    <nav aria-label="Inquiry pagination" className="flex justify-center gap-4 mt-6">
+      <button disabled={loading || busy || page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page} of {Math.max(1,totalPages)}</span><button disabled={loading || busy || page>=totalPages} onClick={()=>setPage(p=>p+1)}>Next</button>
+    </nav>
+    {selected && <div role="dialog" aria-modal="true" aria-label="Inquiry details" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"><div className="bg-white rounded p-6 max-w-lg w-full max-h-screen overflow-auto">
+      <h2 className="text-2xl font-bold mb-4">Inquiry Details</h2><dl className="space-y-3">{[['Name',selected.name],['Email',selected.email],['Phone',selected.phone || '-'],['Property',selected.property?.title || 'General'],['Message',selected.message]].map(([label,value])=><div key={label}><dt className="text-gray-600">{label}</dt><dd className="whitespace-pre-wrap break-words">{value}</dd></div>)}</dl>
+      <button autoFocus className="mt-6 bg-red-600 text-white px-4 py-2 rounded" onClick={()=>setSelected(null)}>Close</button>
+    </div></div>}
+  </div>;
+}

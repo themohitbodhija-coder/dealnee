@@ -1,0 +1,63 @@
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import { Simulate } from 'react-dom/test-utils';
+import SupabaseManageUsersPage from './SupabaseManageUsersPage';
+import { useAuth } from '../../contexts/AuthContext';
+import { adminService } from '../../services/api';
+jest.mock('../../contexts/AuthContext',() => ({ useAuth:jest.fn() }));
+jest.mock('../../services/api',() => ({ adminService:{ getAllUsers:jest.fn(),getOperations:jest.fn(),createUser:jest.fn(),deleteUser:jest.fn(),updateUserAccess:jest.fn(),retryOperation:jest.fn() } }));
+let root,container;
+const actor={ id:'admin-id',role:'admin' };
+const target={ id:'regular-id',name:'Regular user',email:'regular@example.test',role:'user',permissions:[],active:true,accountState:'ready',version:4 };
+beforeEach(() => {
+  global.IS_REACT_ACT_ENVIRONMENT=true;
+  Object.defineProperty(global,'crypto',{ configurable:true,value:{ randomUUID:() => '70000000-0000-4000-8000-000000000003' } });
+  jest.clearAllMocks(); useAuth.mockReturnValue({ user:actor });
+  adminService.getAllUsers.mockResolvedValue({ data:{ users:[target],pages:1 } });
+  adminService.getOperations.mockResolvedValue({ data:{ operations:[] } });
+  adminService.createUser.mockResolvedValue({ data:{} });
+  adminService.updateUserAccess.mockResolvedValue({ data:{} });
+  container=document.createElement('div'); document.body.appendChild(container); root=createRoot(container);
+});
+afterEach(() => { act(() => root.unmount()); container.remove(); });
+const render=() => act(async() => { root.render(<SupabaseManageUsersPage />); });
+const click=async element => act(async() => { Simulate.click(element); });
+const change=async(element,value) => act(async() => { Simulate.change(element,{ target:{ value } }); });
+test('delegated managers see only regular-role invitation controls and no access editor',async() => {
+  useAuth.mockReturnValue({ user:{ id:'manager-id',role:'subadmin',permissions:['manage_users'] } });
+  await render();
+  expect(container.querySelector('[aria-label^="Edit access"]')).toBeNull();
+  await click([...container.querySelectorAll('button')].find(button => button.textContent.includes('Invite user')));
+  const role=container.querySelector('select');
+  expect(role.disabled).toBe(true); expect([...role.options].map(option => option.value)).toEqual(['user']);
+  expect(container.querySelector('input[type="password"]')).toBeNull();
+});
+test('staff invite uses a masked admin confirmation and never asks for the invitee password',async() => {
+  await render(); await click([...container.querySelectorAll('button')].find(button => button.textContent.includes('Invite user')));
+  const dialog=container.querySelector('[role="dialog"]');
+  const fields=dialog.querySelectorAll('input');
+  await change(fields[0],'Invitee'); await change(fields[1],'invitee@example.test'); await change(dialog.querySelector('select'),'admin');
+  expect(dialog.textContent).toContain('Confirm your admin password');
+  await change(dialog.querySelector('input[type="password"]'),'synthetic-admin-password');
+  await act(async() => { Simulate.submit(dialog.querySelector('form'),{ preventDefault:() => {} }); });
+  expect(adminService.createUser).toHaveBeenCalledWith({ name:'Invitee',email:'invitee@example.test',role:'admin',permissions:[],requestId:'70000000-0000-4000-8000-000000000003',password:'synthetic-admin-password' });
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+});
+test('access updates carry the original version and require admin password',async() => {
+  await render(); await click(container.querySelector('[aria-label="Edit access for Regular user"]'));
+  const dialog=container.querySelector('[role="dialog"]');
+  await change(dialog.querySelector('select'),'subadmin');
+  await change(dialog.querySelector('input[type="password"]'),'synthetic-admin-password');
+  await act(async() => { Simulate.submit(dialog.querySelector('form'),{ preventDefault:() => {} }); });
+  expect(adminService.updateUserAccess).toHaveBeenCalledWith('regular-id',{ role:'subadmin',permissions:[],active:true,version:4,password:'synthetic-admin-password' });
+});
+test('failed operations remain retryable and confirmation passwords are cleared',async() => {
+  adminService.createUser.mockRejectedValue(new Error('Invitation pending; retry it.'));
+  await render(); await click([...container.querySelectorAll('button')].find(button => button.textContent.includes('Invite user')));
+  const dialog=container.querySelector('[role="dialog"]');
+  const fields=dialog.querySelectorAll('input'); await change(fields[0],'Invitee'); await change(fields[1],'invitee@example.test'); await change(dialog.querySelector('select'),'admin');
+  await change(dialog.querySelector('input[type="password"]'),'synthetic-admin-password');
+  await act(async() => { Simulate.submit(dialog.querySelector('form'),{ preventDefault:() => {} }); });
+  expect(dialog.textContent).toContain('Invitation pending');
+  expect(dialog.querySelector('input[type="password"]').value).toBe('');
+});

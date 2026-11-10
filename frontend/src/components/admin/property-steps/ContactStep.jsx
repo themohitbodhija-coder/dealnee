@@ -11,7 +11,7 @@ const ContactStep = ({ formData, dispatch, errors = {} }) => {
     if (!formData.contact.phone) {
       dispatch(createFieldUpdateAction('contact', 'phone', '9776631999'));
     }
-  }, [dispatch]);
+  }, [dispatch, formData.contact.phone]);
 
   // Show error modal when errors change
   useEffect(() => {

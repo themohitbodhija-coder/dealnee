@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { FaCheckCircle, FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/fa';
 import { getDisplayLabel, PROPERTY_TYPES } from '../../../constants/propertyConstants';
 import { formatPrice, formatArea } from '../../../utils/propertyFormUtils';

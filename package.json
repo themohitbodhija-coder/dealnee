@@ -5,6 +5,9 @@
     "db:test:native": "node scripts/test-database.mjs",
     "db:test": "node scripts/test-database.mjs --supabase",
     "db:start": "supabase start",
-    "db:reset:local": "supabase db reset --local"
+    "db:reset:local": "supabase db reset --local",
+    "test:edge": "node --test supabase/tests/edge/*.test.mjs",
+    "admin:bootstrap": "node scripts/bootstrap-admin.mjs",
+    "db:test:accounts": "node scripts/test-database.mjs --account-management"
   }
 }

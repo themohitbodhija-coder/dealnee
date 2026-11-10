@@ -1,10 +1,10 @@
+import { usesSupabase } from '../../../lib/backend';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FaInfoCircle, FaTimes } from 'react-icons/fa';
 import {
   PROPERTY_TYPES,
   getCategoriesForType,
   getSubcategoriesForType,
-  getDisplayLabel,
 } from '../../../constants/propertyConstants';
 import { createFieldUpdateAction } from '../../../reducers/propertyFormReducer';
 import { generateSequentialPropertyId } from '../../../utils/propertyIdGenerator';
@@ -119,14 +119,14 @@ const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) 
   // on every edit, which made edits appear to "not save" (they were really
   // being applied to/creating a different record).
   useEffect(() => {
-    if (isEditMode) {
+    if (isEditMode || usesSupabase) {
       return;
     }
     const { category, propertyType } = formData.basicInfo;
     if (category && propertyType) {
       generateIdForCategory(propertyType, category);
     }
-  }, [formData.basicInfo.category, formData.basicInfo.propertyType, generateIdForCategory, isEditMode]);
+  }, [formData.basicInfo, generateIdForCategory, isEditMode]);
 
   const categories = getCategoriesForType(formData.basicInfo.propertyType);
   const subcategories = getSubcategoriesForType(
@@ -270,7 +270,7 @@ const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) 
             value={formData.basicInfo.propertyId}
             onChange={handlePropertyIdChange}
             placeholder="e.g., DEL-NP-001"
-            disabled={isGeneratingId}
+            disabled={isGeneratingId || usesSupabase}
             className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${
               errors.propertyId ? 'border-red-500' : 'border-gray-300'
             }`}
