@@ -2,7 +2,7 @@ import { createPropertyMutations } from './propertyMutations';
 import { createInquiryService } from './inquiries';
 // Existing response envelopes stay at this boundary. No Express calls in this mode.
 export function apiError(error) {
-  const status = error.status || (error.code === '42501' ? 403 : error.code === 'P0002' ? 404 : 400);
+  const status = error.status || (error.code === '42501' ? 403 : error.code === 'P0002' ? 404 : ['23505', '23503'].includes(error.code) ? 409 : 400);
   return Object.assign(new Error(error.message || 'Request failed. Please try again.'), {
     status, response: { status, data: { message: error.message || 'Request failed. Please try again.' } },
   });
@@ -83,11 +83,19 @@ export function createSupabaseApi(getClient) {
       return () => data.subscription.unsubscribe();
     },
   };
+  const categoryDto = c => ({ ...c, _id: c.id, createdAt: c.created_at, parentCategory: c.parent_id || 'none' });
+  const saveCategory = async (id, input) => {
+    const response = await rpc('save_category', {
+      p_id: id, p_name: input.name, p_description: input.description || '',
+      p_icon: input.icon || '', p_parent_id: !input.parentCategory || input.parentCategory === 'none' ? null : input.parentCategory,
+      p_set_parent: true,
+    });
+    return envelope({ category: categoryDto(response.data) });
+  };
   const categories = async () => {
     const { data, error } = await getClient().from('categories').select('id,code,name,description,icon,parent_id,is_system,created_at').order('name');
     if (error) throw apiError(error);
-    return envelope({ categories: data.map(c => ({ ...c, _id: c.id, createdAt: c.created_at,
-      parentCategory: data.find(parent => parent.id === c.parent_id)?.name || 'none' })) });
+    return envelope({ categories: data.map(categoryDto) });
   };
   const adminInvoke = async body => {
     const { data, error } = await getClient().functions.invoke('admin-users', { body });
@@ -115,11 +123,13 @@ export function createSupabaseApi(getClient) {
         if (!category) throw apiError({ status: 404, message: 'Category not found' });
         return envelope({ category });
       },
-      create: unavailable, update: unavailable, delete: unavailable,
+      create: input => saveCategory(null, input),
+      update: (id, input) => saveCategory(id, input),
+      delete: id => rpc('delete_category', { p_id: id }),
     },
     inquiryService: createInquiryService(getClient, apiError),
     adminService: {
-      getDashboardStats: unavailable,
+      getDashboardStats: () => rpc('get_dashboard_stats'),
       getAllUsers: (params = {}) => adminInvoke({ ...params, action: 'list' }),
       createUser: data => adminInvoke({ ...data, action: 'invite' }),
       deleteUser: (id, options = {}) => adminInvoke({ ...options, action: 'delete', targetId: id }),

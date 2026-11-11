@@ -49,10 +49,21 @@ test('catalog adapter uses RPC envelopes and never sends staff mode for public r
   await propertyService.getAdminAll({ page: 2 });
   expect(client.rpc).toHaveBeenLastCalledWith('list_properties', { p_filters: { page: 2 }, p_admin: true });
 });
-test('unfinished category editor mutations fail closed instead of falling back to Express', async () => {
+test('category writes use constrained RPCs and ID parents without forwarding privileged fields', async () => {
   const { client, categoryService } = fixture();
-  await expect(categoryService.create({})).rejects.toMatchObject({ status: 503 });
-  expect(client.rpc).not.toHaveBeenCalled();
+  client.rpc.mockResolvedValue({ data: { id: 'new-category', name: 'Custom', parent_id: 'parent-id' } });
+  const response = await categoryService.create({ name: 'Custom', parentCategory: 'parent-id', code: 'BUY_PROPERTY', is_system: true });
+  expect(client.rpc).toHaveBeenLastCalledWith('save_category', { p_id: null, p_name: 'Custom', p_description: '', p_icon: '', p_parent_id: 'parent-id', p_set_parent: true });
+  expect(response.data.category).toMatchObject({ _id: 'new-category', parentCategory: 'parent-id' });
+  await categoryService.update('new-category', { name: 'Renamed', parentCategory: 'none' });
+  expect(client.rpc).toHaveBeenLastCalledWith('save_category', expect.objectContaining({ p_id: 'new-category', p_parent_id: null }));
+  await categoryService.delete('new-category');
+  expect(client.rpc).toHaveBeenLastCalledWith('delete_category', { p_id: 'new-category' });
+});
+test('category conflicts retain useful server messages and HTTP status', async () => {
+  const { client, categoryService } = fixture();
+  client.rpc.mockResolvedValue({ error: { code: '23503', message: 'Move or delete child categories first' } });
+  await expect(categoryService.delete('parent')).rejects.toMatchObject({ status: 409, message: 'Move or delete child categories first' });
 });
 test('database permission errors keep a useful transport-independent status', async () => {
   const { client, propertyService } = fixture();
@@ -94,4 +105,12 @@ test('account activation goes through the server invitation gate', async () => {
   const { client,authService } = fixture();
   await authService.activateInvitation();
   expect(client.rpc).toHaveBeenCalledWith('accept_invitation',undefined);
+});
+
+test('dashboard uses user-scoped RPC and preserves omitted restricted fields', async () => {
+  const { client, adminService } = fixture();
+  const data = { visibility: { users: true }, stats: { totalUsers: 2 }, userScope: 'regular' };
+  client.rpc.mockResolvedValue({ data });
+  await expect(adminService.getDashboardStats()).resolves.toEqual({ data });
+  expect(client.rpc).toHaveBeenLastCalledWith('get_dashboard_stats', undefined);
 });

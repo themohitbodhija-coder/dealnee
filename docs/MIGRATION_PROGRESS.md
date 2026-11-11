@@ -70,3 +70,39 @@ Next: protected account-management Edge Functions and the admin invitation/grant
 Still pending: S3 signer/finalizer and cleanup worker/scheduler; inquiry submission/CAPTCHA/rate limits and inquiry administration; abuse-controlled view counting; dashboard aggregates/redaction; category editor mutation integration; full frontend write parity; company staging/prod resources; browser/API integration, dependency audit and deployment rehearsal. The database deliberately exposes no browser property mutations or direct public inquiry inserts. Profile images remain empty until a safe contract exists. No admin-grant API or privileged account is seeded.
 
 Company-owned hosted resources, billing, SMTP provider/domain, AWS Activate eligibility, regions and retention decisions remain launch prerequisites from the implementation plan. Local implementation can continue independently.
+
+## Category management — 11 November 2026
+
+Supersedes the category-editor pending entry above. Migration
+`20261110000900_category_management.sql` and the Supabase frontend adapter now
+support category creation, metadata editing, parent moves and deletion. Parent
+references use UUIDs; custom codes are generated on the server. Admins and active
+subadmins with `manage_categories` can write; live permission revocation is enforced.
+Built-in codes and parent links remain fixed, while names/descriptions can change.
+Deletion rejects built-in, referenced and parent categories. Hierarchy writes are
+serialized to prevent concurrent cycles. The page removes bulk deletion, excludes
+self/descendants from parent choices, blocks duplicate clicks while saving, and
+shows server errors without discarding the form.
+
+Verification: 129 frontend tests across 23 suites and all seven native database
+suites passed, along with existing property/admin concurrency assertions. Native
+Auth fixtures do not prove hosted Supabase behavior. Apply migration 009 before
+activating the updated frontend; no hosted migration or deployment was performed.
+
+## Admin dashboard — 11 November 2026
+
+Supersedes the dashboard pending entries above. Migration
+`20261111001000_admin_dashboard.sql` adds `get_dashboard_stats`, a user-scoped
+SQL RPC with live account checks and a minimal permission-filtered projection.
+The frontend now calls it and shows only authorized cards, recent lists and the
+new-inquiry alert. Delegated user managers count only regular accounts. Restricted
+counts and recent rows are omitted; authorized empty sections show actual zeroes.
+Account changes clear loaded data and cancel stale responses.
+
+The RPC replaces the initially proposed dashboard Edge Function: no Auth email
+lookup or provider orchestration is needed, and the database can authorize and
+aggregate in one call without a service-role key. See `ADMIN_DASHBOARD_SETUP.md`.
+Verification passed: 139 frontend tests across 24 suites, all eight native SQL
+suites and existing concurrency checks, plus the strict Supabase CI build.
+Hosted Auth/PostgREST/browser smoke checks remain unverified; no remote migration,
+commit, push or deployment was performed by this workstream.

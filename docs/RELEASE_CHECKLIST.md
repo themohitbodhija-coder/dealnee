@@ -43,5 +43,8 @@ and Vercel deployment result when access is available. Real Supabase Auth/email,
 AWS image delivery/decoding and browser integration require separate hosted checks;
 passing mocked handlers or a static build does not prove those integrations.
 
-Category mutation integration and permission-filtered dashboard statistics remain
-outside these three workstreams and are still pending unless implemented separately.
+Category management is now implemented locally by migration 009 and the admin
+category adapter/page. Apply migration 009 before deploying that frontend.
+Permission-filtered dashboard statistics are implemented by migration 010 and
+the user-scoped `get_dashboard_stats` RPC. Apply migration 010 before deploying
+the updated dashboard; see `ADMIN_DASHBOARD_SETUP.md` for the visibility contract.

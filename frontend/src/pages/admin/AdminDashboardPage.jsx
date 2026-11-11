@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { usesSupabase } from '../../lib/backend';
 import { adminService } from '../../services/api';
 import { FaBox, FaUsers, FaComment, FaTags } from 'react-icons/fa';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { user, can } = useAuth();
+  const [visibility, setVisibility] = useState({});
+  const [userScope, setUserScope] = useState('all');
   const [error, setError] = useState('');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -12,21 +17,31 @@ const AdminDashboard = () => {
   const [recentInquiries, setRecentInquiries] = useState([]);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      const response = await adminService.getDashboardStats();
+    let active = true;
+    setLoading(true);
+    setError('');
+    setStats(null);
+    setVisibility({});
+    setRecentProperties([]);
+    setRecentInquiries([]);
+    adminService.getDashboardStats().then(response => {
+      if (!active) return;
       setStats(response.data.stats);
-      setRecentProperties(response.data.recentProperties);
-      setRecentInquiries(response.data.recentInquiries);
-    } catch (error) {
-      setError('Unable to load the dashboard. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      setVisibility(response.data.visibility || {});
+      setUserScope(response.data.userScope || 'all');
+      setRecentProperties(response.data.recentProperties || []);
+      setRecentInquiries(response.data.recentInquiries || []);
+    }).catch(failure => {
+      if (active) setError(failure.response?.data?.message || failure.message || 'Unable to load the dashboard. Please try again.');
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [user]);
+
+  const allowed = (section, permission) => can(permission) && (!usesSupabase || visibility[section] === true);
+  const showProperties = allowed('properties', 'manage_properties');
+  const showUsers = allowed('users', 'manage_users');
+  const showInquiries = allowed('inquiries', 'view_inquiries');
+  const showCategories = allowed('categories', 'manage_categories');
 
   if (loading) {
     return (
@@ -39,7 +54,8 @@ const AdminDashboard = () => {
   if (error) return <p role="alert" className="p-8 text-red-700">{error}</p>;
 
   const StatCard = ({ icon: Icon, title, value, color, onClick }) => (
-    <div 
+    <button
+      type="button"
       onClick={onClick}
       className="bg-white rounded-lg shadow-md p-6 flex items-center space-x-4 cursor-pointer hover:shadow-xl hover:scale-105 transition duration-300 transform"
     >
@@ -50,7 +66,7 @@ const AdminDashboard = () => {
         <p className="text-gray-600 text-sm">{title}</p>
         <p className="text-3xl font-bold text-gray-800">{value}</p>
       </div>
-    </div>
+    </button>
   );
 
   return (
@@ -59,45 +75,48 @@ const AdminDashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard
+        {showProperties && <StatCard
           icon={FaBox}
           title="Total Properties"
           value={stats?.totalProperties || 0}
           color="bg-red-600"
           onClick={() => navigate('/admin/properties')}
-        />
-        <StatCard
+        />}
+        {showUsers && <StatCard
           icon={FaUsers}
-          title="Total Users"
+          title={userScope === 'regular' ? 'Regular Users' : 'Total Users'}
           value={stats?.totalUsers || 0}
           color="bg-green-600"
           onClick={() => navigate('/admin/users')}
-        />
-        <StatCard
+        />}
+        {showInquiries && <StatCard
           icon={FaComment}
           title="Total Inquiries"
           value={stats?.totalInquiries || 0}
           color="bg-orange-600"
           onClick={() => navigate('/admin/inquiries')}
-        />
-        <StatCard
+        />}
+        {showCategories && <StatCard
           icon={FaTags}
           title="Categories"
           value={stats?.totalCategories || 0}
           color="bg-purple-600"
           onClick={() => navigate('/admin/categories')}
-        />
+        />}
       </div>
 
+      <p className="mb-6 text-gray-600">Only sections available to your account are shown.</p>
+      {!showProperties && !showUsers && !showInquiries && !showCategories &&
+        <p role="status" className="mb-6">No dashboard sections are available for your current permissions.</p>}
       {/* New Inquiries Alert */}
-      {stats?.newInquiries > 0 && (
+      {showInquiries && stats?.newInquiries > 0 && (
         <div className="mb-8 p-4 bg-yellow-100 text-yellow-800 rounded-lg border border-yellow-300">
           <strong>{stats.newInquiries}</strong> new inquiries waiting for response
         </div>
       )}
 
       {/* Recent Properties */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      {showProperties && <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Properties</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -110,11 +129,12 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody>
+              {recentProperties.length === 0 && <tr><td colSpan="4" className="py-3 text-gray-500">No properties yet.</td></tr>}
               {recentProperties.map((prop) => (
                 <tr key={prop._id} className="border-b hover:bg-gray-50">
                   <td className="py-3">{prop.title}</td>
                   <td className="py-3">{prop.category?.name}</td>
-                  <td className="py-3">₹{prop.price?.toLocaleString?.()}</td>
+                  <td className="py-3">₹{Number(prop.price).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                   <td className="py-3">
                     <span className={`px-3 py-1 rounded text-xs font-semibold ${
                       prop.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
@@ -127,10 +147,10 @@ const AdminDashboard = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
 
       {/* Recent Inquiries */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      {showInquiries && <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Inquiries</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -143,6 +163,7 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody>
+              {recentInquiries.length === 0 && <tr><td colSpan="4" className="py-3 text-gray-500">No inquiries yet.</td></tr>}
               {recentInquiries.map((inquiry) => (
                 <tr key={inquiry._id} className="border-b hover:bg-gray-50">
                   <td className="py-3">{inquiry.name}</td>
@@ -162,7 +183,7 @@ const AdminDashboard = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
     </div>
   );
 };

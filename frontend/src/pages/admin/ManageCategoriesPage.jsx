@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usesSupabase } from '../../lib/backend';
 import { categoryService } from '../../services/api';
 import { FaEdit, FaTrash, FaPlus, FaChevronDown, FaChevronRight, FaFolder, FaFile } from 'react-icons/fa';
 
@@ -13,6 +14,22 @@ const ManageCategoriesPage = () => {
     parentCategory: 'none',
   });
   const [editingId, setEditingId] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const editingCategory = categories.find(c => c._id === editingId);
+  const parentValue = category => usesSupabase ? category._id : category.name;
+  const categoriesById = new Map(categories.map(category => [category._id, category]));
+  const parentOptions = categories.filter(category => {
+    if (!usesSupabase) return !category.parentCategory || category.parentCategory === 'none';
+    let current = category;
+    const visited = new Set();
+    while (current) {
+      if (current._id === editingId || visited.has(current._id)) return false;
+      visited.add(current._id);
+      current = categoriesById.get(current.parentCategory);
+    }
+    return true;
+  });
 
   useEffect(() => {
     fetchCategories();
@@ -20,23 +37,22 @@ const ManageCategoriesPage = () => {
 
   const fetchCategories = async () => {
     try {
+      setError('');
       const response = await categoryService.getAll();
-      console.log('📥 ALL CATEGORIES FROM DB:', response.data.categories);
       setCategories(response.data.categories);
-      
+
       // Initialize expanded state for all main categories
-      const mainCategories = response.data.categories.filter(cat => 
+      const mainCategories = response.data.categories.filter(cat =>
         !cat.parentCategory || cat.parentCategory === 'none' || cat.parentCategory === ''
       );
-      console.log('🔍 Main categories found:', mainCategories.map(c => c.name)); // Debug
-      
+
       const expanded = {};
       mainCategories.forEach(cat => {
         expanded[cat._id] = true; // Expand all by default
       });
       setExpandedCategories(expanded);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      setError(error.response?.data?.message || error.message || 'Unable to load categories.');
     } finally {
       setLoading(false);
     }
@@ -45,20 +61,20 @@ const ManageCategoriesPage = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     const updated = { ...formData, [name]: value };
-    console.log(`🔄 Field changed: ${name} = ${value}`, 'Full form:', updated);
     setFormData(updated);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       alert('Please enter category name!');
       return;
     }
 
-    console.log('📤 SUBMITTING FORM DATA:', formData);
 
+    setBusy(true);
+    setError('');
     try {
       if (editingId) {
         await categoryService.update(editingId, formData);
@@ -67,24 +83,31 @@ const ManageCategoriesPage = () => {
         await categoryService.create(formData);
         alert('✅ Category created successfully!');
       }
-      
+
       setFormData({ name: '', description: '', parentCategory: 'none' });
       setShowForm(false);
       setEditingId(null);
-      fetchCategories();
+      await fetchCategories();
     } catch (error) {
-      alert('❌ Error saving category: ' + error.response?.data?.message);
+      setError(error.response?.data?.message || error.message || 'Unable to save category.');
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleDelete = async (id) => {
+    if (busy) return;
     if (window.confirm('Are you sure you want to delete this category?')) {
+      setBusy(true);
+      setError('');
       try {
         await categoryService.delete(id);
         alert('✅ Category deleted successfully!');
-        fetchCategories();
+        await fetchCategories();
       } catch (error) {
-        alert('❌ Error deleting category');
+        setError(error.response?.data?.message || error.message || 'Unable to delete category.');
+      } finally {
+        setBusy(false);
       }
     }
   };
@@ -92,7 +115,8 @@ const ManageCategoriesPage = () => {
   const handleEdit = (category) => {
     setFormData({
       name: category.name,
-      description: category.description,
+      description: category.description || '',
+      icon: category.icon || '',
       parentCategory: category.parentCategory || 'none',
     });
     setEditingId(category._id);
@@ -106,27 +130,12 @@ const ManageCategoriesPage = () => {
     }));
   };
 
-  const handleDeleteAll = async () => {
-    if (window.confirm('🚨 WARNING: This will DELETE ALL CATEGORIES!\n\nAre you absolutely sure?')) {
-      try {
-        for (const cat of categories) {
-          await categoryService.delete(cat._id);
-        }
-        alert('✅ All categories deleted! You can now create your own.');
-        fetchCategories();
-      } catch (error) {
-        alert('❌ Error deleting categories: ' + error.message);
-      }
-    }
-  };
-
   // Get main categories and their subcategories
   const getMainCategories = () => {
     const mainCats = categories.filter(cat => {
       // Include if parentCategory is null, undefined, or empty string, or 'none'
       return !cat.parentCategory || cat.parentCategory === 'none' || cat.parentCategory === '';
     });
-    console.log('Main Categories:', mainCats); // Debug log
     return mainCats;
   };
 
@@ -136,7 +145,7 @@ const ManageCategoriesPage = () => {
 
   // Category Tree Item Component
   const CategoryTreeItem = ({ category, level = 0 }) => {
-    const subcategories = getSubCategories(category.name);
+    const subcategories = getSubCategories(parentValue(category));
     const hasSubcategories = subcategories.length > 0;
     const isExpanded = expandedCategories[category._id];
 
@@ -145,7 +154,7 @@ const ManageCategoriesPage = () => {
         <div className={`flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition ${
           level === 0 ? 'bg-blue-50 border-l-4 border-blue-500 font-semibold' : 'bg-gray-50'
         }`} style={{ marginLeft: `${level * 24}px` }}>
-          
+
           {/* Expand/Collapse Icon */}
           {hasSubcategories ? (
             <button
@@ -190,6 +199,7 @@ const ManageCategoriesPage = () => {
           {/* Action Buttons */}
           <div className="flex space-x-2">
             <button
+              disabled={busy}
               onClick={() => handleEdit(category)}
               className="p-2 text-blue-600 hover:bg-blue-200 rounded transition"
               title="Edit"
@@ -197,9 +207,10 @@ const ManageCategoriesPage = () => {
               <FaEdit size={16} />
             </button>
             <button
+              disabled={busy || category.is_system}
               onClick={() => handleDelete(category._id)}
               className="p-2 text-red-600 hover:bg-red-200 rounded transition"
-              title="Delete"
+              title={category.is_system ? "Built-in categories cannot be deleted" : "Delete"}
             >
               <FaTrash size={16} />
             </button>
@@ -235,12 +246,7 @@ const ManageCategoriesPage = () => {
         </div>
         <div className="flex space-x-2">
           <button
-            onClick={handleDeleteAll}
-            className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold shadow-md"
-          >
-            <span>🗑️</span> <span>Delete All</span>
-          </button>
-          <button
+            disabled={busy}
             onClick={() => {
               setShowForm(!showForm);
               setEditingId(null);
@@ -253,6 +259,8 @@ const ManageCategoriesPage = () => {
         </div>
       </div>
 
+      {error && <div role="alert" className="mb-4 p-4 bg-red-50 text-red-700 rounded">{error}</div>}
+      {usesSupabase && <p className="mb-4 text-gray-600">Built-in category names and descriptions can be edited. Their codes and hierarchy are fixed.</p>}
       {/* Form */}
       {showForm && (
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8 border-2 border-green-300">
@@ -261,10 +269,13 @@ const ManageCategoriesPage = () => {
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <fieldset disabled={busy} className="space-y-4">
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Category Name *</label>
+              <label htmlFor="category-name" className="block text-gray-700 font-semibold mb-2">Category Name *</label>
               <input
                 type="text"
+                id="category-name"
+                maxLength={120}
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
@@ -275,23 +286,27 @@ const ManageCategoriesPage = () => {
             </div>
 
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Parent Category</label>
+              <label htmlFor="category-parent" className="block text-gray-700 font-semibold mb-2">Parent Category</label>
               <select
+                id="category-parent"
+                disabled={usesSupabase && !!editingCategory?.is_system}
                 name="parentCategory"
                 value={formData.parentCategory || 'none'}
                 onChange={handleInputChange}
                 className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-green-500 bg-white"
               >
                 <option value="none">None (Main Category)</option>
-                {getMainCategories().map(cat => (
-                  <option key={cat._id} value={cat.name}>{cat.name}</option>
+                {parentOptions.map(cat => (
+                  <option key={cat._id} value={parentValue(cat)}>{cat.name}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Description (Optional)</label>
+              <label htmlFor="category-description" className="block text-gray-700 font-semibold mb-2">Description (Optional)</label>
               <textarea
+                id="category-description"
+                maxLength={2000}
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
@@ -320,6 +335,7 @@ const ManageCategoriesPage = () => {
                 Cancel
               </button>
             </div>
+            </fieldset>
           </form>
         </div>
       )}
@@ -328,7 +344,7 @@ const ManageCategoriesPage = () => {
       {categories.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Category Hierarchy ({categories.length})</h2>
-          
+
           {getMainCategories().length > 0 ? (
             <div className="space-y-2">
               {getMainCategories().map(category => (
