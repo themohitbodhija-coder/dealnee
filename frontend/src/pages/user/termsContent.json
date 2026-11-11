@@ -1,0 +1,624 @@
+[
+  {
+    "id": "introduction",
+    "title": "1. Introduction",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Welcome to Dealinee Estate (“we,” “our,” “us,” or “the Company”)."
+      },
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate is a real estate channel partner and proprietorship firm providing property-related services, including property rental, buying, selling, and property management services."
+      },
+      {
+        "type": "paragraph",
+        "text": "These Terms & Conditions govern your access to and use of our website, services, property listings, communications, and other related facilities."
+      },
+      {
+        "type": "paragraph",
+        "text": "By accessing our website, contacting us, submitting an enquiry, or using our services, you agree to these Terms & Conditions. If you do not agree, please discontinue using our website and services."
+      }
+    ]
+  },
+  {
+    "id": "our-services",
+    "title": "2. Our Services",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate provides the following real estate-related services:"
+      },
+      {
+        "type": "heading",
+        "text": "2.1 Property Rental Services"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Assisting property owners and landlords in finding prospective tenants.",
+          "Helping tenants identify suitable residential or commercial properties.",
+          "Coordinating property visits and discussions between owners and prospective tenants.",
+          "Assisting with rental negotiations and documentation coordination."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2.2 Property Buying Services"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Assisting prospective buyers in identifying suitable properties.",
+          "Providing available property information and arranging site visits.",
+          "Connecting buyers with property owners, developers, builders, or authorised representatives.",
+          "Facilitating communication and negotiations between interested parties."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2.3 Property Selling Services"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Assisting property owners in marketing and promoting their properties.",
+          "Connecting sellers with potential buyers.",
+          "Coordinating property inspections, enquiries, and negotiations.",
+          "Supporting the transaction process as an intermediary or channel partner."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2.4 Property Management Services"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Assisting property owners with rental and property-related coordination.",
+          "Coordinating tenant enquiries, rent-related communication, maintenance requests, and other agreed services.",
+          "Providing property management support according to the separate agreement entered into with the property owner."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "The exact scope, fees, responsibilities, and duration of any service may be specified in a separate written agreement."
+      }
+    ]
+  },
+  {
+    "id": "eligibility-to-use-our-services",
+    "title": "3. Eligibility to Use Our Services",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "By using our website or services, you confirm that:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "You are at least 18 years of age.",
+          "You are legally capable of entering into a binding agreement.",
+          "The information you provide is accurate, complete, and up to date.",
+          "You have the authority to submit information or act on behalf of another person or property owner, where applicable.",
+          "You will use our services only for lawful purposes."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "property-listings-and-information",
+    "title": "4. Property Listings and Information",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate may display property details, photographs, videos, prices, locations, amenities, floor plans, availability, and other property-related information on its website, social media platforms, advertisements, or other communication channels."
+      },
+      {
+        "type": "paragraph",
+        "text": "Please note:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Property information may be provided by property owners, developers, builders, landlords, channel partners, or other third parties.",
+          "Prices, availability, specifications, amenities, and possession timelines may change without prior notice.",
+          "Photographs, videos, illustrations, and floor plans may be for representation purposes and may not reflect the exact current condition of a property.",
+          "We make reasonable efforts to present accurate information but do not guarantee that every listing is complete, error-free, or continuously updated.",
+          "Users should independently verify all important property details before making any financial or legal commitment."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate is not responsible for changes or inaccuracies in information supplied by third parties, except to the extent required by applicable law."
+      }
+    ]
+  },
+  {
+    "id": "property-verification-and-due-diligence",
+    "title": "5. Property Verification and Due Diligence",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Customers are advised to independently verify the legal, financial, technical, and physical details of any property before entering into a transaction."
+      },
+      {
+        "type": "paragraph",
+        "text": "This may include:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Ownership and title documents.",
+          "Sale deeds and chain of title.",
+          "Encumbrance and applicable land records.",
+          "Building approvals and sanctioned plans.",
+          "Applicable RERA registration and project details.",
+          "Property tax and utility dues.",
+          "Land-use permissions and other statutory approvals.",
+          "Physical condition, measurements, boundaries, and access.",
+          "Pending litigation, disputes, or other legal restrictions."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate may assist in coordinating document collection or communication where agreed, but does not automatically provide legal, financial, architectural, engineering, or title-certification services."
+      },
+      {
+        "type": "paragraph",
+        "text": "Unless expressly agreed in writing, customers should obtain independent professional advice and verification."
+      }
+    ]
+  },
+  {
+    "id": "role-as-a-real-estate-channel-partner",
+    "title": "6. Role as a Real Estate Channel Partner",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate may act as a real estate intermediary, marketing associate, channel partner, or service coordinator between property owners, buyers, sellers, tenants, landlords, developers, and other authorised parties."
+      },
+      {
+        "type": "paragraph",
+        "text": "Our role may include sharing property information, arranging visits, generating enquiries, coordinating negotiations, and facilitating communication."
+      },
+      {
+        "type": "paragraph",
+        "text": "Unless specifically authorised through a written agreement:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Dealinee Estate does not act as the legal owner of a listed property.",
+          "We cannot independently transfer ownership or create rights over any property.",
+          "We cannot make binding commitments on behalf of property owners, developers, or other third parties.",
+          "Final transaction terms must be agreed upon by the relevant parties in their own written agreements."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "Where applicable, our activities will be subject to the Real Estate (Regulation and Development) Act, 2016 (RERA), applicable state regulations, and other relevant laws."
+      }
+    ]
+  },
+  {
+    "id": "property-visits-and-site-inspections",
+    "title": "7. Property Visits and Site Inspections",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate may coordinate property visits and site inspections based on availability and permission from the concerned property owner, landlord, developer, or authorised representative."
+      },
+      {
+        "type": "paragraph",
+        "text": "Users agree to:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Follow the property’s access and safety instructions.",
+          "Respect the property owner, residents, security personnel, and other visitors.",
+          "Avoid trespassing or entering restricted areas.",
+          "Not damage, remove, or misuse any property or its facilities.",
+          "Confirm the property’s availability before travelling for a visit."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "Property visits are subject to confirmation and the relevant party’s permission."
+      }
+    ]
+  },
+  {
+    "id": "pricing-negotiations-and-payments",
+    "title": "8. Pricing, Negotiations and Payments",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Property prices, rent, security deposits, maintenance charges, booking amounts, and other financial terms are generally determined by the concerned property owner, landlord, developer, seller, or authorised representative."
+      },
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate may assist in communicating and negotiating these terms but does not guarantee that a particular price or offer will remain available."
+      },
+      {
+        "type": "paragraph",
+        "text": "Payment conditions:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Customers should make payments only after confirming the recipient’s identity and authority.",
+          "Payments relating to property purchases, booking amounts, rental deposits, or other transaction amounts should be made to the authorised recipient under the relevant agreement.",
+          "Customers should obtain proper payment receipts and written acknowledgements.",
+          "Dealinee Estate will collect customer payments only where specifically authorised and under clearly communicated terms.",
+          "Any refund, cancellation, or adjustment of transaction-related amounts will be governed by the applicable agreement and law."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate is not responsible for payments made directly to unauthorised persons or third parties."
+      }
+    ]
+  },
+  {
+    "id": "brokerage-service-fees-and-charges",
+    "title": "9. Brokerage, Service Fees and Charges",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate may charge brokerage, commission, service fees, marketing charges, or property management fees for services provided."
+      },
+      {
+        "type": "paragraph",
+        "text": "The applicable amount, calculation method, payment deadline, and other conditions will be communicated to the customer before the relevant service is undertaken or the transaction is concluded, as applicable."
+      },
+      {
+        "type": "paragraph",
+        "text": "Depending on the service, fees may be payable by the buyer, seller, landlord, tenant, property owner, developer, or another party as mutually agreed."
+      },
+      {
+        "type": "paragraph",
+        "text": "Any separate written brokerage or service agreement will govern the agreed commercial terms, subject to applicable law."
+      }
+    ]
+  },
+  {
+    "id": "rental-terms-and-responsibilities",
+    "title": "10. Rental Terms and Responsibilities",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "For rental-related services:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "The landlord and tenant are responsible for agreeing on rent, security deposit, rental duration, notice period, maintenance responsibilities, and other tenancy conditions.",
+          "The tenancy relationship will be governed by the applicable rental agreement and relevant laws.",
+          "Tenants should inspect the property and understand its condition before taking possession.",
+          "Landlords should provide accurate information about the property and their authority to rent it.",
+          "Dealinee Estate may assist with coordination but is not automatically a party to the landlord-tenant agreement."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "Any property management or rent collection responsibilities undertaken by Dealinee Estate must be separately authorised and documented."
+      }
+    ]
+  },
+  {
+    "id": "buying-and-selling-property",
+    "title": "11. Buying and Selling Property",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "For property purchase and sale transactions:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Buyers and sellers are responsible for agreeing on the final sale price and transaction conditions.",
+          "The parties must independently verify the ownership, legal status, approvals, and other relevant details of the property.",
+          "Sale agreements, conveyance documents, registration, stamp duty, taxes, and other legal formalities must be completed as required by law.",
+          "Dealinee Estate may coordinate communication and documentation but does not replace the services of a qualified lawyer, financial adviser, or other professional."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "The final transaction is subject to the written agreement between the buyer and seller and applicable law."
+      }
+    ]
+  },
+  {
+    "id": "property-management-services",
+    "title": "12. Property Management Services",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Where Dealinee Estate provides property management services, the scope of responsibility will be defined in a separate property management agreement."
+      },
+      {
+        "type": "paragraph",
+        "text": "Depending on the agreement, services may include:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Tenant coordination and communication.",
+          "Rental enquiry management.",
+          "Rent-related follow-ups.",
+          "Maintenance request coordination.",
+          "Property inspection coordination.",
+          "Vacant property supervision.",
+          "Other mutually agreed property-related assistance."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate will not be responsible for services outside the agreed scope."
+      },
+      {
+        "type": "paragraph",
+        "text": "Property owners remain responsible for their legal obligations, property ownership, statutory payments, and any responsibilities not expressly assigned to Dealinee Estate in writing."
+      }
+    ]
+  },
+  {
+    "id": "user-responsibilities-and-prohibited-activities",
+    "title": "13. User Responsibilities and Prohibited Activities",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Users agree not to:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Provide false, misleading, or fraudulent information.",
+          "Upload or share documents without proper authority.",
+          "Use our website for unlawful activities.",
+          "Misrepresent property ownership or authority to sell or rent a property.",
+          "Copy, reproduce, or misuse our website content, photographs, videos, or branding without permission.",
+          "Attempt to interfere with the security or operation of our website.",
+          "Harass, threaten, or mislead other customers, property owners, tenants, or representatives.",
+          "Use our contact details or services for spam, scams, or unauthorised marketing."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "We reserve the right to restrict or discontinue access to our services where misuse or unlawful activity is identified, subject to applicable law."
+      }
+    ]
+  },
+  {
+    "id": "third-party-services-and-external-links",
+    "title": "14. Third-Party Services and External Links",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Our website, advertisements, or communications may contain links to third-party websites, property portals, developers, financial institutions, service providers, or other external platforms."
+      },
+      {
+        "type": "paragraph",
+        "text": "These third parties operate independently and may have their own terms, privacy policies, and practices."
+      },
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate does not control external websites or guarantee the accuracy, availability, or reliability of their content or services."
+      },
+      {
+        "type": "paragraph",
+        "text": "Users should review the applicable third-party terms before using those services."
+      }
+    ]
+  },
+  {
+    "id": "intellectual-property-rights",
+    "title": "15. Intellectual Property Rights",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Unless otherwise stated, the content available on the Dealinee Estate website and official communication channels, including:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Company name and branding.",
+          "Logos and graphic designs.",
+          "Text, descriptions, and marketing materials.",
+          "Original photographs and videos.",
+          "Website layout and design.",
+          "Promotional content."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "is owned by Dealinee Estate or used with appropriate permission."
+      },
+      {
+        "type": "paragraph",
+        "text": "No person may reproduce, distribute, modify, publish, or commercially use such content without prior written permission from the rightful owner."
+      },
+      {
+        "type": "paragraph",
+        "text": "Property photographs, logos, and other materials supplied by third parties remain subject to their respective ownership and usage rights."
+      }
+    ]
+  },
+  {
+    "id": "privacy-and-personal-information",
+    "title": "16. Privacy and Personal Information",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "By using our website and services, you acknowledge that we may collect and process personal information for purposes such as responding to enquiries, arranging property visits, connecting interested parties, providing property-related services, and communicating with customers."
+      },
+      {
+        "type": "paragraph",
+        "text": "Personal information may be shared with relevant property owners, buyers, sellers, landlords, tenants, developers, authorised channel partners, and service providers when necessary for the requested service and subject to applicable law."
+      },
+      {
+        "type": "paragraph",
+        "text": "Our collection, use, storage, and disclosure of personal information are explained in our Privacy Policy."
+      },
+      {
+        "type": "paragraph",
+        "text": "Please review our Privacy Policy for further details."
+      }
+    ]
+  },
+  {
+    "id": "limitation-of-liability",
+    "title": "17. Limitation of Liability",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "To the extent permitted by applicable law, Dealinee Estate will not be liable for:"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Decisions made by customers based on unverified third-party property information.",
+          "Disputes between buyers, sellers, landlords, tenants, developers, or other parties.",
+          "Changes in property prices, availability, construction schedules, or possession dates caused by third parties.",
+          "Losses arising from inaccurate information supplied by third parties.",
+          "Delays or interruptions caused by events beyond our reasonable control.",
+          "Unauthorised actions or representations by persons who are not authorised to act on our behalf."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "Nothing in these Terms & Conditions excludes or limits liability that cannot legally be excluded or limited under applicable law, including liability arising from fraud, wilful misconduct, or statutory consumer rights."
+      }
+    ]
+  },
+  {
+    "id": "indemnification",
+    "title": "18. Indemnification",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "To the extent permitted by law, users agree to be responsible for claims, losses, damages, or expenses arising directly from their fraudulent conduct, unlawful activities, material misrepresentation, or violation of these Terms & Conditions or another person’s legal rights."
+      },
+      {
+        "type": "paragraph",
+        "text": "This provision does not apply to the extent that a claim results from Dealinee Estate’s own unlawful conduct or non-excludable legal responsibilities."
+      }
+    ]
+  },
+  {
+    "id": "force-majeure",
+    "title": "19. Force Majeure",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate will not be responsible for delays or failure to perform services caused by circumstances beyond reasonable control, including natural disasters, floods, fires, government restrictions, strikes, public emergencies, internet or telecommunications failures, or other unforeseen events."
+      },
+      {
+        "type": "paragraph",
+        "text": "We will make reasonable efforts to resume affected services when circumstances permit."
+      }
+    ]
+  },
+  {
+    "id": "suspension-and-termination",
+    "title": "20. Suspension and Termination",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate may suspend or discontinue access to its website or services where necessary due to misuse, suspected fraud, security concerns, unlawful activity, or operational requirements."
+      },
+      {
+        "type": "paragraph",
+        "text": "Customers may discontinue using our website or request the closure of their service relationship, subject to outstanding payments, existing agreements, legal obligations, and applicable record-retention requirements."
+      },
+      {
+        "type": "paragraph",
+        "text": "Any separate property management, brokerage, or service agreement will be governed by its own termination provisions."
+      }
+    ]
+  },
+  {
+    "id": "changes-to-these-terms-conditions",
+    "title": "21. Changes to These Terms & Conditions",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate reserves the right to update or modify these Terms & Conditions from time to time to reflect changes in our services, business operations, or applicable laws."
+      },
+      {
+        "type": "paragraph",
+        "text": "Updated terms will be published on this page with a revised “Last Updated” date."
+      },
+      {
+        "type": "paragraph",
+        "text": "Continued use of our website or services after the updated terms become effective will be subject to the revised Terms & Conditions, to the extent permitted by law."
+      }
+    ]
+  },
+  {
+    "id": "governing-law-and-jurisdiction",
+    "title": "22. Governing Law and Jurisdiction",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "These Terms & Conditions will be governed by the laws of India."
+      },
+      {
+        "type": "paragraph",
+        "text": "Subject to applicable law and the jurisdiction of any competent statutory authority, courts having jurisdiction in Bhubaneswar, Odisha, shall have jurisdiction over disputes arising from these Terms & Conditions."
+      },
+      {
+        "type": "paragraph",
+        "text": "Nothing in this clause limits any consumer’s statutory right to approach a competent consumer commission or other authority."
+      }
+    ]
+  },
+  {
+    "id": "contact-information",
+    "title": "23. Contact Information",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "For questions, concerns, or clarification regarding these Terms & Conditions, please contact us:"
+      },
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate"
+      },
+      {
+        "type": "paragraph",
+        "text": "Business Type: Real Estate Channel Partner & Proprietorship Firm"
+      },
+      {
+        "type": "paragraph",
+        "text": "Address: Flat No. GD, Ground Floor, ISCON Residency, Patia, Bhubaneswar, Odisha – 751024, India"
+      },
+      {
+        "type": "paragraph",
+        "text": "Phone: +91 97766 21999"
+      },
+      {
+        "type": "paragraph",
+        "text": "Email: dealinee0@gmail.com"
+      },
+      {
+        "type": "paragraph",
+        "text": "Website: https://www.dealinee.com/"
+      },
+      {
+        "type": "paragraph",
+        "text": "Dealinee Estate"
+      },
+      {
+        "type": "paragraph",
+        "text": "Your Trusted Property Partner for Every Move."
+      },
+      {
+        "type": "paragraph",
+        "text": "RENT | SELL | BUY | PROPERTY MANAGEMENT"
+      }
+    ]
+  }
+]

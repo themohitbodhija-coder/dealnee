@@ -18,3 +18,11 @@ test('delete passes version and surfaces conflict',async()=>{
   await expect(api.delete('property-id',{version:2})).rejects.toMatchObject({status:409,message:'Property changed'});
   expect(invoke.mock.calls[0][1].body.version).toBe(2);
 });
+
+test('preserves the save response message and every field error in the frontend error envelope', async () => {
+  const fieldErrors = { 'location.address': 'This field is required.', 'contact.phone': 'Enter a contact number.' };
+  const invoke = jest.fn().mockResolvedValue({ error: { context: { status: 400, json: async () => ({ error: 'Review the details below.', fieldErrors }) } } });
+  const errorFactory = error => Object.assign(new Error(error.message), error);
+  const api = createPropertyMutations(() => ({ functions: { invoke } }), errorFactory);
+  await expect(api.create({ requestId })).rejects.toMatchObject({ status: 400, message: 'Review the details below.', fieldErrors });
+});

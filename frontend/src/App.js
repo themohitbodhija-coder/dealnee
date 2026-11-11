@@ -11,6 +11,7 @@ import PropertyDetailsPage from './pages/user/PropertyDetailsPage';
 import AboutPage from './pages/user/AboutPage';
 import ContactPage from './pages/user/ContactPage';
 import PrivacyPolicyPage from './pages/user/PrivacyPolicyPage';
+import TermsAndConditionsPage from './pages/user/TermsAndConditionsPage';
 import LoginPage from './pages/user/LoginPage';
 import RegisterPage from './pages/user/RegisterPage';
 import CarrierPage from './pages/user/CarrierPage';
@@ -41,6 +42,7 @@ export default function App() {
       <Route path="/carrier" element={<CarrierPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />

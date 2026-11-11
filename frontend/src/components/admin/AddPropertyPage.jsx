@@ -7,7 +7,7 @@ import React, {
   useRef,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaCheckCircle, FaSpinner, FaExclamationCircle, FaRedo } from 'react-icons/fa';
+import { FaCheckCircle, FaSpinner, FaExclamationCircle } from 'react-icons/fa';
 import { isNewProject, isNewProjectCategory } from '../../constants/propertyConstants';
 import {
   propertyFormReducer,
@@ -30,6 +30,7 @@ import {
 import { propertyService } from '../../services/api';
 import { usesSupabase } from '../../lib/backend';
 import { propertyWritePayload } from '../../utils/propertyWritePayload';
+import { propertyFieldIssues, propertySubmissionFeedback } from '../../utils/propertySubmissionFeedback';
 import { imageReferences, createPhotoSession } from '../../services/photoService';
 import BasicInfoStep from './property-steps/BasicInfoStep';
 import LocationStep from './property-steps/LocationStep';
@@ -211,24 +212,28 @@ NavigationButtons.displayName = 'NavigationButtons';
  * ErrorAlert Component
  * Displays error messages with optional retry button
  */
-const ErrorAlert = React.memo(({ error, onRetry }) => (
-  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top">
-    <FaExclamationCircle className="text-red-600 mt-1 flex-shrink-0" />
-    <div className="flex-1">
-      <p className="text-red-700 font-semibold text-sm">{error}</p>
-    </div>
-    {onRetry && (
-      <button
-        onClick={onRetry}
-        className="text-red-600 hover:text-red-700 flex-shrink-0 mt-1"
-        title="Retry submission"
-      >
-        <FaRedo className="text-lg" />
-      </button>
+const ErrorAlert = ({ issue, steps, onEdit, onRetry, alertRef }) => (
+  <div ref={alertRef} role="alert" tabIndex={-1} className="scroll-mt-24 mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+    <p className="flex items-center gap-2 font-semibold">
+      <FaExclamationCircle aria-hidden="true" />
+      {issue.message}
+    </p>
+    {issue.issues.length > 0 && (
+      <ul className="mt-3 list-disc space-y-2 pl-6 text-sm">
+        {issue.issues.map(({ field, label, message, stepId }, index) => {
+          const step = steps.find(item => item.id === stepId);
+          return (
+            <li key={`${field}-${index}`}>
+              {label && <strong className="capitalize">{label}: </strong>}{message}
+              {step && <button type="button" onClick={() => onEdit(step.id, true)} className="ml-2 underline">Edit {step.label}</button>}
+            </li>
+          );
+        })}
+      </ul>
     )}
+    {issue.retryable && <button type="button" onClick={onRetry} className="mt-3 font-semibold underline">Try again</button>}
   </div>
-));
-ErrorAlert.displayName = 'ErrorAlert';
+);
 
 /**
  * SuccessScreen Component
@@ -428,17 +433,19 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
   const [loading, setLoading] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [, setSubmitAttempts] = useState(0);
-  const [lastError, setLastError] = useState(null);
+  const [submissionIssue, setSubmissionIssue] = useState(null);
 
   // Refs for lifecycle management
   const isMountedRef = useRef(true);
   const abortControllerRef = useRef(null);
   const contentSectionRef = useRef(null);
+  const submissionAlertRef = useRef(null);
   const lastFormDataRef = useRef(formData);
 
   // ========== LIFECYCLE EFFECTS ==========
-  // Mark component as mounted
+  // Mark component as mounted, including React Strict Mode effect replays.
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
       if (abortControllerRef.current) {
@@ -479,6 +486,13 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
     }
   }, [currentStep]);
 
+  useEffect(() => {
+    if (submissionIssue && submissionAlertRef.current) {
+      submissionAlertRef.current.focus({ preventScroll: true });
+      submissionAlertRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [submissionIssue]);
+
   // ========== CALLBACKS ==========
   /**
    * Validate current step
@@ -492,7 +506,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
     if (currentStep > 0) {
       setCurrentStepRaw((prev) => prev - 1);
       setErrors({});
-      setLastError(null);
+      setSubmissionIssue(null);
     }
   }, [currentStep]);
 
@@ -504,7 +518,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
     // this keeps every "Next" click frictionless and prevents any step's
     // own error modal from popping up.
     setErrors({});
-    setLastError(null);
+    setSubmissionIssue(null);
     setCurrentStepRaw((prev) => prev + 1);
   }, []);
 
@@ -516,7 +530,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
       if (stepIndex <= currentStep) {
         setCurrentStepRaw(stepIndex);
         setErrors({});
-        setLastError(null);
+        setSubmissionIssue(null);
       }
     },
     [currentStep]
@@ -526,12 +540,12 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
    * Edit a specific step from review screen
    */
   const handleEdit = useCallback(
-    (stepId) => {
+    (stepId, keepFieldErrors = false) => {
       const stepIndex = FORM_STEPS.findIndex((s) => s.id === stepId);
       if (stepIndex !== -1 && stepIndex < FORM_STEPS.length) {
         setCurrentStepRaw(stepIndex);
-        setErrors({});
-        setLastError(null);
+        if (!keepFieldErrors) setErrors({});
+        setSubmissionIssue(null);
       }
     },
     [FORM_STEPS]
@@ -550,12 +564,10 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
     // The API still validates the update against the property schema.
     const validationErrors = editingProperty?._id ? {} : validateCompleteForm(formData);
     if (Object.keys(validationErrors).length > 0) {
-      console.error('[Property Submit] Validation errors:', validationErrors);
-      setErrors({
-        submit: Object.entries(validationErrors).flatMap(([section, fields]) =>
-          Object.entries(fields).map(([field, message]) => `${section}.${field}: ${message}`)
-        ).join(' '),
-        ...validationErrors,
+      setErrors(validationErrors);
+      setSubmissionIssue({
+        message: 'Fix these details before saving.',
+        issues: propertyFieldIssues(validationErrors),
       });
       return;
     }
@@ -563,9 +575,10 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
     // Setup submission
     setErrors({});
     setLoading(true);
-    setLastError(null);
+    setSubmissionIssue(null);
     setSubmitAttempts((prev) => prev + 1);
 
+    let timeout;
     try {
       console.log('[Property Submit] Starting submission...');
       // Create abort controller for request cancellation
@@ -609,9 +622,9 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
 
       const response = await Promise.race([
         apiCall,
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timeout')), SUBMISSION_TIMEOUT_MS)
-        ),
+        new Promise((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('Request timeout')), SUBMISSION_TIMEOUT_MS);
+        }),
       ]);
 
       console.log('[Property Submit] Response received:', response?.data);
@@ -671,68 +684,12 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
         return () => clearTimeout(redirectTimer);
       }
     } catch (error) {
-      // Always clear loading state first, regardless of mount status
-      setLoading(false);
-
-      // Log full server response where available to aid debugging
-      try {
-        console.error('[Property Submit] Server response data:', error.response?.data);
-      } catch (logErr) {
-        console.error('[Property Submit] Error reading server response', logErr);
+      if (isMountedRef.current) {
+        setLoading(false);
+        setSubmissionIssue(propertySubmissionFeedback(error));
       }
-
-      // If the component unmounted, at least surface the server error in an alert so developer can see details
-      if (!isMountedRef.current) {
-        console.warn('[Property Submit] Component unmounted, cannot update UI state. Showing alert with server error');
-        try {
-          const resp = error.response?.data || { message: error.message };
-          window.alert('Property submit failed:\n' + JSON.stringify(resp, null, 2));
-        } catch (alertErr) {
-          // fallback to simple alert
-          window.alert('Property submit failed: ' + (error.message || 'Unknown error'));
-        }
-        return;
-      }
-
-      console.error('[Property Submit] ERROR:', error.message, error);
-      let errorMessage = 'Failed to submit property. Please try again.';
-
-      // Handle different error types
-      if (error.name === 'AbortError') {
-        errorMessage = 'Submission was cancelled';
-      } else if (error.message === 'Request timeout') {
-        errorMessage = 'Request timed out. Please check your connection and try again.';
-      } else if (error.response?.status === 400) {
-        // If the server returned structured validation errors, prefer showing them
-        errorMessage = error.response.data?.message || 'Invalid form data provided';
-        if (error.response.data?.errors) {
-          const firstKey = Object.keys(error.response.data.errors)[0];
-          errorMessage = error.response.data.errors[firstKey] || errorMessage;
-        }
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Your session expired. Please login again.';
-      } else if (error.response?.status === 403) {
-        errorMessage = 'You do not have permission to add properties';
-      } else if (error.response?.status === 409) {
-        errorMessage = 'This property changed or this create session was already saved. Reload the listing before saving again.';
-      } else if (error.response?.status >= 500) {
-        errorMessage = 'Server error. Please try again later.';
-      } else if (!error.response) {
-        errorMessage = 'Network error. Please check your connection.';
-      } else {
-        errorMessage =
-          (error.response?.data?.errors && Object.entries(error.response.data.errors)
-            .map(([field, detail]) => `${field}: ${typeof detail === 'string' ? detail : detail.message || 'Invalid value'}`).join(' ')) ||
-          error.response?.data?.message ||
-          error.response?.data?.error ||
-          error.message ||
-          errorMessage;
-      }
-
-      setLastError(errorMessage);
-      setErrors({
-        submit: errorMessage,
-      });
+    } finally {
+      clearTimeout(timeout);
     }
   }, [formData, loading, uploadingImages, editingProperty, navigate, onEditComplete]);
 
@@ -740,7 +697,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
    * Retry last submission
    */
   const handleRetry = useCallback(() => {
-    setLastError(null);
+    setSubmissionIssue(null);
     setErrors({});
     handleSubmit();
   }, [handleSubmit]);
@@ -787,13 +744,6 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
               : 'Fill in all the details to list your property. Your progress is auto-saved.'}
           </p>
         </div>
-        {/* Submission error alert (visible when lastError is set) */}
-        {lastError && (
-          <div className="mb-6">
-            <ErrorAlert error={lastError} onRetry={handleRetry} />
-          </div>
-        )}
-
         {/* Progress Bar */}
         <div className="mb-8">
           <ProgressBar percentage={progressPercentage} />
@@ -808,47 +758,6 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
           currentStep={currentStep}
           onStepClick={handleStepClick}
         />
-
-        {/* Error Messages */}
-        {lastError && <ErrorAlert error={lastError} onRetry={handleRetry} />}
-        {errors.submit && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 font-semibold text-sm">{errors.submit}</p>
-          </div>
-        )}
-
-        {/* Validation Errors Summary - Show why Next button is disabled */}
-        {nextButtonDisabled && Object.keys(errors).length > 0 && !errors.submit && (
-          <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
-            <p className="text-amber-900 font-bold text-sm mb-3 flex items-center gap-2">
-              ⚠️ Please fix the following errors to proceed:
-            </p>
-            <ul className="space-y-2">
-              {Object.entries(errors)
-                .filter(([key]) => key !== 'submit')
-                .map(([field, error]) => {
-                  if (typeof error === 'object' && error !== null) {
-                    return Object.entries(error).map(([subField, subError]) => (
-                      <li key={`${field}.${subField}`} className="text-amber-800 text-sm flex gap-2">
-                        <span className="text-amber-600 font-bold">•</span>
-                        <span>
-                          <strong>{field}</strong> {subField}: {subError}
-                        </span>
-                      </li>
-                    ));
-                  }
-                  return (
-                    <li key={field} className="text-amber-800 text-sm flex gap-2">
-                      <span className="text-amber-600 font-bold">•</span>
-                      <span>
-                        <strong>{field}:</strong> {typeof error === 'string' ? error : JSON.stringify(error)}
-                      </span>
-                    </li>
-                  );
-                })}
-            </ul>
-          </div>
-        )}
 
         {/* Main Content */}
         <div
@@ -880,6 +789,16 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
             </div>
           )}
         </div>
+
+        {submissionIssue && (
+          <ErrorAlert
+            issue={submissionIssue}
+            steps={FORM_STEPS}
+            onEdit={handleEdit}
+            onRetry={handleRetry}
+            alertRef={submissionAlertRef}
+          />
+        )}
 
         {/* Navigation Buttons - Outside Card */}
         <div className="bg-white rounded-b-lg shadow-lg border-t border-gray-200 px-8 py-6 mt-6 sticky bottom-0 z-40">

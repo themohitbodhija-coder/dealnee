@@ -4,7 +4,7 @@ import { createInquiryService } from './inquiries';
 export function apiError(error) {
   const status = error.status || (error.code === '42501' ? 403 : error.code === 'P0002' ? 404 : ['23505', '23503'].includes(error.code) ? 409 : 400);
   return Object.assign(new Error(error.message || 'Request failed. Please try again.'), {
-    status, response: { status, data: { message: error.message || 'Request failed. Please try again.' } },
+    status, response: { status, data: { message: error.message || 'Request failed. Please try again.', ...(error.fieldErrors ? { fieldErrors: error.fieldErrors } : {}) } },
   });
 }
 const envelope = data => ({ data });

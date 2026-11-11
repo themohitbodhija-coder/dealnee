@@ -18,7 +18,13 @@ export function createPropertyMutations(getClient, apiError) {
     if(error) {
       let detail;
       try { detail=await error.context?.json(); } catch (_) { /* provider response absent */ }
-      throw apiError({status:error.context?.status||503,message:detail?.error||'Property service is unavailable. Retry the same save.'});
+      const status = error.context?.status || 503;
+      const localPreview = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+      const fallback = !error.context?.status && localPreview
+        ? 'Could not reach the property service from this local preview. Try saving on the live site.'
+        : 'Could not reach the property service. Check your connection and try again.';
+      const message = detail?.error || detail?.message || fallback;
+      throw apiError({ status, message, fieldErrors: detail?.fieldErrors || detail?.errors });
     }
     return {data};
   };
