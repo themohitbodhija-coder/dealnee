@@ -403,7 +403,7 @@ verify_jwt = true
 [functions.photo-uploads]
 verify_jwt = true
 # WASM is explicitly bundled; no runtime download or public decoder endpoint.
-static_files = ["./functions/photo-uploads/vendor/magick.wasm"]
+static_files = ["./functions/photo-uploads/vendor/magick.wasm.br"]
 
 # Dedicated scheduler credential is verified inside the handler.
 [functions.photo-cleanup]
