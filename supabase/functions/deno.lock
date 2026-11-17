@@ -3,6 +3,7 @@
   "specifiers": {
     "npm:@aws-sdk/client-s3@3.922.0": "3.922.0",
     "npm:@aws-sdk/s3-presigned-post@3.922.0": "3.922.0",
+    "npm:@aws-sdk/s3-request-presigner@3.922.0": "3.922.0",
     "npm:@imagemagick/magick-wasm@0.0.46": "0.0.46",
     "npm:@smithy/fetch-http-handler@5.8.1": "5.8.1",
     "npm:@supabase/supabase-js@2.119.0": "2.119.0"
@@ -465,6 +466,19 @@
         "@smithy/types",
         "@smithy/util-hex-encoding",
         "@smithy/util-utf8@4.5.2",
+        "tslib"
+      ]
+    },
+    "@aws-sdk/s3-request-presigner@3.922.0": {
+      "integrity": "sha512-x/WZXOMAN10X/hbjHnaXjtU34RmV3/eJMiHoJsohquSgz8+pfRN1DeK65oa/XPoKCMPfV31RfHSzCduligHfsQ==",
+      "dependencies": [
+        "@aws-sdk/signature-v4-multi-region",
+        "@aws-sdk/types",
+        "@aws-sdk/util-format-url",
+        "@smithy/middleware-endpoint",
+        "@smithy/protocol-http",
+        "@smithy/smithy-client",
+        "@smithy/types",
         "tslib"
       ]
     },

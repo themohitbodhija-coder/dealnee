@@ -405,6 +405,10 @@ verify_jwt = true
 # WASM is explicitly bundled; no runtime download or public decoder endpoint.
 static_files = ["./functions/photo-uploads/vendor/magick.wasm.br"]
 
+# Catalog images are public. The function only signs keys visible to the anon role.
+[functions.photo-image]
+verify_jwt = false
+
 # Dedicated scheduler credential is verified inside the handler.
 [functions.photo-cleanup]
 verify_jwt = false
