@@ -47,7 +47,9 @@ begin
  end loop;
 end $$;
 select pg_temp.assert_true((select count(*)=19 from public.properties where posted_by='71000000-0000-4000-8000-000000000002'),'all 19 subtype saves');
-select set_config('test.result',public.save_property('72000000-0000-4000-8000-000000000001',pg_temp.property_fixture()||'{"resaleInfo":{"floorNumber":0,"totalFloors":2,"readyToMove":false},"furnishingItems":["ac"]}','[]',null,null,'73000000-0000-4000-8000-000000000001')::text,true);
+select set_config('test.amenities','["gym","rooftop_cafe","sky_gym","infinity_swimming_pool","tennis_court","childrens_adventure_play_area","ev_charging_stations","pet_friendly_park"]',true);
+select set_config('test.result',public.save_property('72000000-0000-4000-8000-000000000001',pg_temp.property_fixture()||'{"resaleInfo":{"floorNumber":0,"totalFloors":2,"readyToMove":false},"furnishingItems":["ac"]}'||jsonb_build_object('amenities',current_setting('test.amenities')::jsonb),'[]',null,null,'73000000-0000-4000-8000-000000000001')::text,true);
+select pg_temp.assert_true(current_setting('test.result')::jsonb#>'{property,amenities}'=current_setting('test.amenities')::jsonb,'legacy and premium amenities round trip');
 select set_config('test.id',current_setting('test.result')::jsonb#>>'{property,id}',true);
 select pg_temp.expect_error($s$select public.save_property('72000000-0000-4000-8000-000000000001',pg_temp.property_fixture()||'{"title":"Changed"}','[]',null,null,'73000000-0000-4000-8000-000000000001')$s$,'40001','idempotency payload mismatch rejected');
 select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture(),'[]',null,null,'73000000-0000-4000-8000-000000000001')$s$,'40001','same create session cannot duplicate listing');
@@ -65,6 +67,7 @@ select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_
 select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture()||'{"resaleInfo":{"availableFrom":"2026-02-30"}}','[]',null,null,gen_random_uuid())$s$,'22023','calendar date');
 select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture()||'{"facilities":["bank"]}','[]',null,null,gen_random_uuid())$s$,'22023','array allowlist');
 select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture()||'{"amenities":["gym","gym"]}','[]',null,null,gen_random_uuid())$s$,'22023','duplicate arrays');
+select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture()||'{"amenities":["unknown_amenity"]}','[]',null,null,gen_random_uuid())$s$,'22023','unknown amenity rejected');
 select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture()||'{"category":"RENT"}','[]',null,null,gen_random_uuid())$s$,'22023','category mismatch');
 select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture('RENTAL_FLAT')||'{"rentalInfo":{"monthlyRent":"999"}}','[]',null,null,gen_random_uuid())$s$,'22023','conflicting duplicate rent');
 select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture()||'{"rentalInfo":{"securityDeposit":10}}','[]',null,null,gen_random_uuid())$s$,'22023','wrong subtype details');

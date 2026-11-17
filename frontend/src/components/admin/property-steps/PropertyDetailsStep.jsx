@@ -19,6 +19,7 @@ import {
   getOwnershipTypes,
   getFacingDirections,
 } from '../../../constants/propertyConstants';
+import { PREMIUM_AMENITY_GROUPS } from '../../../constants/premiumAmenities';
 import {
   createFieldUpdateAction,
   createAmenityUpdateAction,
@@ -31,15 +32,34 @@ import {
 import AmenityIcons from '../../../components/icons/AmenityIcons';
 import { getDefaultFurnishingItemsForStatus } from '../../../utils/propertyFormUtils';
 
+const AmenityOptions = ({ options, selected, onChange }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    {options.map(({ id, label }) => (
+      <label key={id} className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={selected.has(id)}
+          onChange={(event) => onChange(id, event.target.checked)}
+          className="w-4 h-4 text-purple-600 rounded flex-shrink-0"
+        />
+        <AmenityIcons id={id} className="text-purple-600 w-4 h-4 flex-shrink-0" />
+        <span className="text-sm text-gray-700">{label}</span>
+      </label>
+    ))}
+  </div>
+);
+
 const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const { propertyType, subcategory, category } = formData.basicInfo;
   const { propertyDetails, resaleInfo, rentalInfo, commercialDetails } = formData;
+  const selectedAmenities = new Set(propertyDetails.amenities ?? []);
   const normalizedCategory = (category || '').toString().trim().toUpperCase().replace(/[-\s]+/g, '_');
   const normalizedSubcategory = (subcategory || '').toString().trim().toUpperCase().replace(/[-\s]+/g, '_');
   const isNewProjectSelection = normalizedSubcategory.includes('NEW_PROJECT') || normalizedCategory.includes('NEW_PROJECT');
   const isResaleSelection = normalizedCategory.includes('RESALE') || normalizedSubcategory.includes('RESALE');
   const isNewProjectPlot = propertyType === 'BUY' && subcategory === 'NEW_PROJECT_PLOT';
+  const isResalePlot = propertyType === 'BUY' && subcategory === 'RESALE_PLOT';
   const shouldShowCommonFields = isBuyProperty(propertyType) || isRentalProperty(propertyType) || isNewProjectSelection;
   const shouldShowResaleFields = isResaleSelection && !isNewProjectSelection;
   const isCommercialBuy = isCommercialProperty(propertyType);
@@ -256,7 +276,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                 </div>
               ))}
             </div>
-          ) : shouldShowCommonFields && (
+          ) : shouldShowCommonFields && !isResalePlot && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -727,24 +747,28 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
           </div>
         </div>
       )}
-{/* Amenities */}
-<div>
-  <h3 className="text-lg font-semibold text-gray-800 mb-4">Amenities</h3>
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-    {AMENITIES.map((amenity) => (
-      <label key={amenity.id} className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={(propertyDetails.amenities || []).includes(amenity.id)}
-          onChange={(e) => handleAmenityChange(amenity.id, e.target.checked)}
-          className="w-4 h-4 text-purple-600 rounded flex-shrink-0"
-        />
-        <AmenityIcons id={amenity.id} className="text-purple-600 w-4 h-4 flex-shrink-0" />
-        <span className="ml-1 text-sm text-gray-700">{amenity.label}</span>
-      </label>
-    ))}
-  </div>
-</div>
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Amenities</h3>
+        <AmenityOptions options={AMENITIES} selected={selectedAmenities} onChange={handleAmenityChange} />
+        <div className="mt-4 space-y-2">
+          {PREMIUM_AMENITY_GROUPS.map(({ label, amenities }) => {
+            const selectedCount = amenities.filter(({ id }) => selectedAmenities.has(id)).length;
+            return (
+              <details key={label} className="rounded-lg border border-gray-200 p-3">
+                <summary className="cursor-pointer font-semibold text-gray-700">
+                  {label}
+                  {selectedCount > 0 && (
+                    <span className="ml-2 text-sm font-normal text-gray-600">{selectedCount} selected</span>
+                  )}
+                </summary>
+                <div className="mt-3">
+                  <AmenityOptions options={amenities} selected={selectedAmenities} onChange={handleAmenityChange} />
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      </div>
       {/* Facilities */}
       <div>
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Nearby Facilities</h3>

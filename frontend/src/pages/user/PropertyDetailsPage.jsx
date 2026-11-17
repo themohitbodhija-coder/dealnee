@@ -7,6 +7,7 @@ import ImageLightbox from '../../components/user/ImageLightbox';
 import { getImageUrl } from '../../utils/imageUrl';
 import AmenityIcons from '../../components/icons/AmenityIcons';
 import { getDisplayLabel, FACILITIES } from '../../constants/propertyConstants';
+import { PREMIUM_AMENITY_LABELS } from '../../constants/premiumAmenities';
 import { getFurnishingItemDisplayLabels, getPropertyRoomStats, getPropertyLocationLabel } from '../../utils/propertyFormUtils';
 
 const displayNumber = value => value == null || !Number.isFinite(Number(value)) ? 'N/A' : Number(value).toLocaleString();
@@ -575,7 +576,7 @@ const PropertyDetailsPage = () => {
                         <span>
                           <AmenityIcons id={amenity} />
                         </span>
-                        <span>{amenity}</span>
+                        <span>{PREMIUM_AMENITY_LABELS.get(amenity) ?? amenity}</span>
                       </div>
                     ))}
                   </div>

@@ -364,7 +364,7 @@ export const getCategoriesForType = (propertyType) => {
 /**
  * Get subcategories for a specific property type and category
  */
-export const getSubcategoriesForType = (propertyType, category) => {
+export const getSubcategoriesForType = (propertyType, category, usesSupabase = false) => {
   switch (propertyType) {
     case PROPERTY_TYPES.BUY:
       // Filter subcategories based on category
@@ -374,9 +374,12 @@ export const getSubcategoriesForType = (propertyType, category) => {
           { value: BUY_SUBCATEGORIES.NEW_PROJECT_VILLA, label: BUY_SUBCATEGORIES_DISPLAY.NEW_PROJECT_VILLA },
           { value: BUY_SUBCATEGORIES.NEW_PROJECT_PLOT, label: BUY_SUBCATEGORIES_DISPLAY.NEW_PROJECT_PLOT },
         ];
-      } else if (category === BUY_CATEGORIES.RESALE) {
-        // RESALE has no subcategories
-        return [];
+      } else if (category === BUY_CATEGORIES.RESALE && usesSupabase) {
+        return [
+          { value: BUY_SUBCATEGORIES.RESALE_FLAT, label: BUY_SUBCATEGORIES_DISPLAY.RESALE_FLAT },
+          { value: BUY_SUBCATEGORIES.RESALE_VILLA, label: BUY_SUBCATEGORIES_DISPLAY.RESALE_VILLA },
+          { value: BUY_SUBCATEGORIES.RESALE_PLOT, label: BUY_SUBCATEGORIES_DISPLAY.RESALE_PLOT },
+        ];
       }
       return [];
 

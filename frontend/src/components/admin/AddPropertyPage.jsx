@@ -17,6 +17,7 @@ import {
 } from '../../reducers/propertyFormReducer';
 import {
   validateCompleteForm,
+  validateResaleSubtype,
 } from '../../validation/propertyValidation';
 import {
   saveFormToLocalStorage,
@@ -562,7 +563,10 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
 
     // Existing listings can be saved without completing unrelated/missing fields.
     // The API still validates the update against the property schema.
-    const validationErrors = editingProperty?._id ? {} : validateCompleteForm(formData);
+    const resaleSubtypeError = editingProperty?._id && validateResaleSubtype(formData.basicInfo);
+    const validationErrors = editingProperty?._id
+      ? (resaleSubtypeError ? { basicInfo: { subcategory: resaleSubtypeError } } : {})
+      : validateCompleteForm(formData);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       setSubmissionIssue({

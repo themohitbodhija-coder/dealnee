@@ -5,7 +5,10 @@
  */
 
 import {
+  BUY_CATEGORIES,
+  BUY_SUBCATEGORIES,
   PROPERTY_TYPES,
+  getSubcategoriesForType,
   isBuyProperty,
   isRentalProperty,
   isCommercialProperty,
@@ -13,6 +16,19 @@ import {
   isRentalFlat,
   isResaleCategory,
 } from '../constants/propertyConstants';
+
+import { usesSupabase } from '../lib/backend';
+
+export const validateResaleSubtype = ({ propertyType, category, subcategory }) => {
+  if (!usesSupabase || propertyType !== PROPERTY_TYPES.BUY || category !== BUY_CATEGORIES.RESALE) {
+    return undefined;
+  }
+
+  const options = getSubcategoriesForType(propertyType, category, usesSupabase);
+  if (!options.some(option => option.value === subcategory)) {
+    return 'Choose a subtype for this resale property.';
+  }
+};
 
 export const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -98,10 +114,10 @@ export const validateBasicInfo = (data) => {
     errors.category = 'Category is required';
   }
 
-  // Subcategory validation: only required for types/categories that have subcategories
-  // RESALE, RESIDENTIAL (RENT), and some COMMERCIAL categories don't have subcategories
-  if (!data.subcategory) {
-    // For BUY type, check if category requires subcategory (RESALE doesn't)
+  const resaleSubtypeError = validateResaleSubtype(data);
+  if (resaleSubtypeError) {
+    errors.subcategory = resaleSubtypeError;
+  } else if (!data.subcategory) {
     if (data.propertyType === PROPERTY_TYPES.BUY && data.category === 'NEW_PROJECT') {
       errors.subcategory = 'Subcategory is required';
     }
@@ -186,7 +202,7 @@ export const validatePropertyDetails = (data, propertyType, subcategory = '') =>
   }
 
   // For BUY properties
-  if (isBuyProperty(propertyType) && !isNewProject(subcategory)) {
+  if (isBuyProperty(propertyType) && !isNewProject(subcategory) && subcategory !== BUY_SUBCATEGORIES.RESALE_PLOT) {
     if (!validateBedrooms(data.bedrooms)) {
       errors.bedrooms = 'Please enter valid number of bedrooms';
     }
@@ -195,8 +211,6 @@ export const validatePropertyDetails = (data, propertyType, subcategory = '') =>
       errors.bathrooms = 'Please enter valid number of bathrooms';
     }
 
-    // For Resale properties (now using category check since RESALE has no subcategories)
-    // The validation for resale properties is now handled in validateResaleInfo
   }
 
   // For RENT properties

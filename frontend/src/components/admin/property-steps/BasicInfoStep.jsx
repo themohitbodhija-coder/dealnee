@@ -131,7 +131,8 @@ const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) 
   const categories = getCategoriesForType(formData.basicInfo.propertyType);
   const subcategories = getSubcategoriesForType(
     formData.basicInfo.propertyType,
-    formData.basicInfo.category
+    formData.basicInfo.category,
+    usesSupabase
   );
 
   return (
@@ -234,12 +235,13 @@ const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) 
       )}
 
       {/* Subcategory */}
-      {formData.basicInfo.category && subcategories && subcategories.length > 0 && formData.basicInfo.propertyType !== PROPERTY_TYPES.RENT && (
+      {formData.basicInfo.category && subcategories.length > 0 && formData.basicInfo.propertyType !== PROPERTY_TYPES.RENT && (
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label htmlFor="property-subcategory" className="block text-sm font-semibold text-gray-700 mb-2">
             Subcategory
           </label>
           <select
+            id="property-subcategory"
             value={formData.basicInfo.subcategory}
             onChange={handleSubcategoryChange}
             className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${

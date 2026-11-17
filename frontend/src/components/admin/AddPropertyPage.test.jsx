@@ -6,7 +6,6 @@ import { propertyService } from '../../services/api';
 
 jest.mock('../../services/api', () => ({ propertyService: { update: jest.fn() } }));
 jest.mock('../../lib/backend', () => ({ usesSupabase: true }));
-jest.mock('./property-steps/BasicInfoStep', () => () => null);
 jest.mock('./property-steps/LocationStep', () => () => null);
 jest.mock('./property-steps/ContactStep', () => () => null);
 jest.mock('./property-steps/PropertyDetailsStep', () => () => null);
@@ -34,13 +33,29 @@ test('shows server validation beside Submit in Strict Mode and links to the affe
     await act(async () => root.render(
       <React.StrictMode>
         <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <AddPropertyPage editingProperty={{ _id: 'property-id', version: 1, title: 'Sample property', propertyType: 'BUY', subcategory: 'RESALE_FLAT', category: 'RESALE' }} />
+          <AddPropertyPage editingProperty={{ _id: 'property-id', version: 1, title: 'Sample property', propertyType: 'BUY', category: 'RESALE' }} />
         </MemoryRouter>
       </React.StrictMode>
     ));
+    expect([...container.querySelector('#property-subcategory').options].map(option => option.value)).toEqual([
+      '', 'RESALE_FLAT', 'RESALE_VILLA', 'RESALE_PLOT',
+    ]);
+    for (let step = 0; step < 5; step += 1) await click('Next →');
+    await click('Submit Property');
+    expect(propertyService.update).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="alert"]').textContent).toContain('Choose a subtype for this resale property.');
+    await click('Edit Basic Info');
+    const subtype = container.querySelector('#property-subcategory');
+    await act(async () => {
+      subtype.value = 'RESALE_FLAT';
+      subtype.dispatchEvent(new Event('change', { bubbles: true }));
+    });
     for (let step = 0; step < 5; step += 1) await click('Next →');
     await click('Submit Property');
     expect(propertyService.update).toHaveBeenCalledTimes(1);
+    expect(propertyService.update).toHaveBeenCalledWith('property-id', expect.objectContaining({
+      property: expect.objectContaining({ category: 'RESALE', subcategory: 'RESALE_FLAT' }),
+    }));
     const alerts = container.querySelectorAll('[role="alert"]');
     expect(alerts).toHaveLength(1);
     expect(alerts[0].textContent).toContain('Enter the full street address.');
