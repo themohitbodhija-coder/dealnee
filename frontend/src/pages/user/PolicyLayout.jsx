@@ -1,20 +1,11 @@
 import React, { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 
 export default function PolicyLayout({ title, description, sections, children }) {
-  const { hash } = useLocation();
-
   useEffect(() => {
     const previousTitle = document.title;
     document.title = `${title} | Dealinee Estate`;
     return () => { document.title = previousTitle; };
   }, [title]);
-
-  useEffect(() => {
-    const section = document.getElementById(hash.slice(1));
-    if (section) section.scrollIntoView();
-    else if (!hash) window.scrollTo(0, 0);
-  }, [hash]);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">

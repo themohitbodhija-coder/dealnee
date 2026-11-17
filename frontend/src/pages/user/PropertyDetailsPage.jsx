@@ -23,7 +23,6 @@ const PropertyDetailsPage = () => {
   const [showContactForm, setShowContactForm] = useState(false);
   useEffect(() => {
     let active = true;
-    window.scrollTo(0, 0);
     setLoading(true);
     setProperty(null);
     const fetchProperty = async () => {

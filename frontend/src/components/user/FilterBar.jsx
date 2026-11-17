@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { FaFilter, FaTimes, FaChevronDown } from 'react-icons/fa';
 
 const FilterBar = ({ onFilterChange, categories, propertyType, propertySubtype, propertyCategory }) => {
@@ -17,7 +17,13 @@ const FilterBar = ({ onFilterChange, categories, propertyType, propertySubtype, 
   });
 
   const [showFilters, setShowFilters] = useState(false);
-  const [expandedSection, setExpandedSection] = useState('basic');
+  const [expandedSection, setExpandedSection] = useState(null);
+  const filterControlsId = useId();
+
+  const toggleFilters = () => {
+    setShowFilters(open => !open);
+    setExpandedSection(null);
+  };
 
   // State to Cities mapping
   const citiesByState = {
@@ -340,10 +346,6 @@ const FilterBar = ({ onFilterChange, categories, propertyType, propertySubtype, 
     onFilterChange(resetFilters);
   };
 
-  const getActiveFilterCount = () => {
-    return Object.values(filters).filter(val => val !== '').length;
-  };
-
   // Get active category name from categories list
   const getActiveCategoryName = () => {
     if (!propertyCategory || !categories) return null;
@@ -359,64 +361,68 @@ const FilterBar = ({ onFilterChange, categories, propertyType, propertySubtype, 
     return filters.state ? (citiesByState[filters.state] || []) : [];
   };
 
+  const activeCategoryName = getActiveCategoryName();
+  const activeFilterCount = Object.values(filters).filter(value => value !== '').length;
+
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-8 overflow-hidden">
-      {/* Filter Header */}
-      <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100">
-        <div className="flex items-center space-x-4">
-          <div className="p-2.5 bg-gradient-to-br from-red-600 to-red-700 rounded-lg shadow-md">
-            <FaFilter className="text-white text-lg" />
-          </div>
-          <div>
-            <h3 className="font-bold text-gray-800 text-lg">Advanced Filters</h3>
-            <div className="flex items-center space-x-2 mt-1">
-              {getActiveCategoryName() && (
-                <span className="text-xs text-green-700 font-semibold bg-green-100 px-2.5 py-1 rounded-full inline-block">
-                  Category: {getActiveCategoryName()}
-                </span>
-              )}
-              {getActiveFilterCount() > 0 && (
-                <span className="text-xs text-red-600 font-semibold bg-red-50 px-2.5 py-1 rounded-full inline-block">
-                  {getActiveFilterCount()} active {getActiveFilterCount() === 1 ? 'filter' : 'filters'}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
+      <div className="p-5 flex items-center gap-2 bg-gradient-to-r from-gray-50 to-gray-100">
+        <h3 className="min-w-0 flex-1">
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="md:hidden px-4 py-2 bg-red-600 text-white rounded-lg font-semibold flex items-center space-x-2 hover:bg-red-700 transition"
+            type="button"
+            aria-expanded={showFilters}
+            aria-controls={filterControlsId}
+            onClick={toggleFilters}
+            className="flex w-full items-center gap-4 rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-600"
           >
-            <FaFilter className="text-sm" />
-            <span>{showFilters ? 'Hide' : 'Show'}</span>
+            <span className="p-2.5 bg-gradient-to-br from-red-600 to-red-700 rounded-lg shadow-md">
+              <FaFilter aria-hidden="true" className="text-white text-lg" />
+            </span>
+            <span className="flex-1">
+              <span className="block font-bold text-gray-800 text-lg">Advanced Filters</span>
+              {(activeCategoryName || activeFilterCount > 0) && (
+                <span className="flex flex-wrap items-center gap-2 mt-1">
+                  {activeCategoryName && (
+                    <span className="text-xs text-green-700 font-semibold bg-green-100 px-2.5 py-1 rounded-full">
+                      Category: {activeCategoryName}
+                    </span>
+                  )}
+                  {activeFilterCount > 0 && (
+                    <span className="text-xs text-red-600 font-semibold bg-red-50 px-2.5 py-1 rounded-full">
+                      {activeFilterCount} active {activeFilterCount === 1 ? 'filter' : 'filters'}
+                    </span>
+                  )}
+                </span>
+              )}
+            </span>
+            <FaChevronDown aria-hidden="true" className={`mr-1 shrink-0 text-gray-600 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           </button>
-          {getActiveFilterCount() > 0 && (
-            <button
-              onClick={handleReset}
-              className="hidden md:flex px-3 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition items-center space-x-1"
-            >
-              <FaTimes className="text-sm" />
-              <span className="text-sm">Clear</span>
-            </button>
-          )}
-        </div>
+        </h3>
+        {activeFilterCount > 0 && (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="hidden md:flex px-3 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition items-center space-x-1"
+          >
+            <FaTimes aria-hidden="true" className="text-sm" />
+            <span className="text-sm">Clear</span>
+          </button>
+        )}
       </div>
 
-      {/* Filter Controls */}
-      <div className={`${showFilters ? 'block' : 'hidden'} md:block p-5 space-y-6`}>
-        
+      <div id={filterControlsId} hidden={!showFilters} className="border-t border-gray-200 p-5 space-y-6">
         {/* Basic Filters Section */}
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <button
+            type="button"
+            aria-expanded={expandedSection === 'basic'}
             onClick={() => setExpandedSection(expandedSection === 'basic' ? null : 'basic')}
             className="w-full p-4 bg-gray-50 hover:bg-gray-100 flex items-center justify-between font-semibold text-gray-800 transition"
           >
             <span className="flex items-center space-x-2">
               <span>💰 Price & Location</span>
             </span>
-            <FaChevronDown className={`transition transform ${expandedSection === 'basic' ? 'rotate-180' : ''}`} />
+            <FaChevronDown aria-hidden="true" className={`transition transform ${expandedSection === 'basic' ? 'rotate-180' : ''}`} />
           </button>
           
           {expandedSection === 'basic' && (
@@ -512,13 +518,15 @@ const FilterBar = ({ onFilterChange, categories, propertyType, propertySubtype, 
         {/* Property Details Section */}
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <button
+            type="button"
+            aria-expanded={expandedSection === 'details'}
             onClick={() => setExpandedSection(expandedSection === 'details' ? null : 'details')}
             className="w-full p-4 bg-gray-50 hover:bg-gray-100 flex items-center justify-between font-semibold text-gray-800 transition"
           >
             <span className="flex items-center space-x-2">
               <span>🏠 Property Details</span>
             </span>
-            <FaChevronDown className={`transition transform ${expandedSection === 'details' ? 'rotate-180' : ''}`} />
+            <FaChevronDown aria-hidden="true" className={`transition transform ${expandedSection === 'details' ? 'rotate-180' : ''}`} />
           </button>
           
           {expandedSection === 'details' && (
@@ -598,13 +606,15 @@ const FilterBar = ({ onFilterChange, categories, propertyType, propertySubtype, 
         {/* Area Section */}
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           <button
+            type="button"
+            aria-expanded={expandedSection === 'area'}
             onClick={() => setExpandedSection(expandedSection === 'area' ? null : 'area')}
             className="w-full p-4 bg-gray-50 hover:bg-gray-100 flex items-center justify-between font-semibold text-gray-800 transition"
           >
             <span className="flex items-center space-x-2">
               <span>📐 Super Built-up Area</span>
             </span>
-            <FaChevronDown className={`transition transform ${expandedSection === 'area' ? 'rotate-180' : ''}`} />
+            <FaChevronDown aria-hidden="true" className={`transition transform ${expandedSection === 'area' ? 'rotate-180' : ''}`} />
           </button>
           
           {expandedSection === 'area' && (
@@ -643,7 +653,7 @@ const FilterBar = ({ onFilterChange, categories, propertyType, propertySubtype, 
         <div className="flex justify-center md:justify-end">
           <button
             onClick={handleReset}
-            disabled={getActiveFilterCount() === 0}
+            disabled={activeFilterCount === 0}
             className="w-full md:w-auto px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg"
           >
             <FaTimes className="text-sm" />

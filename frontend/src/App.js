@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import PermissionRoute from './components/common/PermissionRoute';
+import RouteScroll from './components/common/RouteScroll';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import AdminSidebar from './components/admin/AdminSidebar';
@@ -33,7 +34,7 @@ function AdminLayout() {
     <div className="flex-1 ml-64"><Outlet /></div></div></PermissionRoute>;
 }
 export default function App() {
-  return <AuthProvider><Router><div className="flex min-h-screen flex-col"><Routes>
+  return <AuthProvider><Router><RouteScroll /><div className="flex min-h-screen flex-col"><Routes>
     <Route element={<PublicLayout />}>
       <Route path="/" element={<HomePage />} />
       <Route path="/properties" element={<PropertyListingPage />} />
