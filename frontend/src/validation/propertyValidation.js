@@ -8,6 +8,7 @@ import {
   BUY_CATEGORIES,
   BUY_SUBCATEGORIES,
   PROPERTY_TYPES,
+  RENT_CATEGORIES,
   getSubcategoriesForType,
   isBuyProperty,
   isRentalProperty,
@@ -30,6 +31,15 @@ export const validateResaleSubtype = ({ propertyType, category, subcategory }) =
   const options = getSubcategoriesForType(propertyType, category);
   if (!options.some(option => option.value === subcategory)) {
     return 'Choose a subtype for this resale property.';
+  }
+};
+
+export const validateRentalSubtype = ({ propertyType, subcategory }) => {
+  if (!usesSupabase || propertyType !== PROPERTY_TYPES.RENT) return undefined;
+
+  const options = getSubcategoriesForType(propertyType, RENT_CATEGORIES.RENT);
+  if (!options.some(option => option.value === subcategory)) {
+    return 'Choose a subtype for this rental property.';
   }
 };
 
@@ -117,9 +127,9 @@ export const validateBasicInfo = (data) => {
     errors.category = 'Category is required';
   }
 
-  const resaleSubtypeError = validateResaleSubtype(data);
-  if (resaleSubtypeError) {
-    errors.subcategory = resaleSubtypeError;
+  const subtypeError = validateResaleSubtype(data) || validateRentalSubtype(data);
+  if (subtypeError) {
+    errors.subcategory = subtypeError;
   } else if (!data.subcategory) {
     if (data.propertyType === PROPERTY_TYPES.BUY && data.category === 'NEW_PROJECT') {
       errors.subcategory = 'Subcategory is required';

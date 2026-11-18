@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaCheckCircle, FaSpinner, FaExclamationCircle } from 'react-icons/fa';
-import { isNewProject, isNewProjectCategory } from '../../constants/propertyConstants';
+import { isNewProject, isNewProjectCategory, RENT_CATEGORIES } from '../../constants/propertyConstants';
 import {
   propertyFormReducer,
   createResetFormAction,
@@ -19,6 +19,7 @@ import {
   validateCompleteForm,
   validatePlotDetails,
   validateProjectPricing,
+  validateRentalSubtype,
   validateResaleSubtype,
 } from '../../validation/propertyValidation';
 import {
@@ -521,13 +522,20 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
    * Navigate to next step with validation
    */
   const handleNext = useCallback(() => {
-    // Move to the next step without running/storing step validation —
-    // this keeps every "Next" click frictionless and prevents any step's
-    // own error modal from popping up.
+    if (FORM_STEPS[currentStep]?.id === 'basic_info') {
+      const subtypeError = validateRentalSubtype(formData.basicInfo);
+      if (subtypeError) {
+        const basicInfo = formData.basicInfo.category === RENT_CATEGORIES.RENT
+          ? { subcategory: subtypeError }
+          : { category: 'Choose the Rent category.' };
+        setErrors({ basicInfo });
+        return;
+      }
+    }
     setErrors({});
     setSubmissionIssue(null);
     setCurrentStepRaw((prev) => prev + 1);
-  }, []);
+  }, [FORM_STEPS, currentStep, formData.basicInfo]);
 
   /**
    * Navigate to specific step by clicking step indicator
@@ -569,13 +577,15 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
 
     // Existing listings can be saved without completing unrelated/missing fields.
     // The API still validates the update against the property schema.
-    const resaleSubtypeError = editingProperty?._id && validateResaleSubtype(formData.basicInfo);
+    const subtypeError = editingProperty?._id && (
+      validateResaleSubtype(formData.basicInfo) || validateRentalSubtype(formData.basicInfo)
+    );
     const plotErrors = editingProperty?._id ? validatePlotDetails(formData) : {};
     const plotPricingErrors = editingProperty?._id && formData.basicInfo.subcategory === 'NEW_PROJECT_PLOT'
       ? validateProjectPricing(formData.projectPricing, true) : {};
     const validationErrors = editingProperty?._id
       ? {
-          ...(resaleSubtypeError && { basicInfo: { subcategory: resaleSubtypeError } }),
+          ...(subtypeError && { basicInfo: { subcategory: subtypeError } }),
           ...(Object.keys(plotErrors).length > 0 && { propertyDetails: plotErrors }),
           ...(Object.keys(plotPricingErrors).length > 0 && { projectPricing: plotPricingErrors }),
         }
@@ -792,7 +802,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
             <CurrentStepComponent
               formData={formData}
               dispatch={dispatch}
-              errors={errors}
+              errors={currentStepId === 'basic_info' ? errors.basicInfo : errors}
               isEditMode={!!editingProperty}
               propertyId={editingProperty?._id}
               createSessionId={formData.createSessionId}

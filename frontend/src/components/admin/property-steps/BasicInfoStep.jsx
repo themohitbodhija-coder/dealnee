@@ -17,10 +17,11 @@ const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) 
 
   // Show error modal when errors change
   useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      setShowErrorModal(true);
-    }
-  }, [errors]);
+    const hasModalErrors = Object.keys(errors).some(
+      field => field !== 'subcategory' || formData.basicInfo.propertyType !== PROPERTY_TYPES.RENT
+    );
+    setShowErrorModal(hasModalErrors);
+  }, [errors, formData.basicInfo.propertyType]);
 
   const handleTitleChange = useCallback(
     (e) => {
@@ -234,7 +235,7 @@ const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) 
       )}
 
       {/* Subcategory */}
-      {formData.basicInfo.category && subcategories.length > 0 && formData.basicInfo.propertyType !== PROPERTY_TYPES.RENT && (
+      {subcategories.length > 0 && (usesSupabase || formData.basicInfo.propertyType !== PROPERTY_TYPES.RENT) && (
         <div>
           <label htmlFor="property-subcategory" className="block text-sm font-semibold text-gray-700 mb-2">
             Subcategory
@@ -243,6 +244,8 @@ const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) 
             id="property-subcategory"
             value={formData.basicInfo.subcategory}
             onChange={handleSubcategoryChange}
+            aria-invalid={!!errors.subcategory}
+            aria-describedby={errors.subcategory ? 'property-subcategory-error' : undefined}
             className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.subcategory ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -255,7 +258,7 @@ const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) 
             ))}
           </select>
           {errors.subcategory && (
-            <p className="text-red-500 text-xs mt-1">{errors.subcategory}</p>
+            <p id="property-subcategory-error" className="text-red-500 text-xs mt-1">{errors.subcategory}</p>
           )}
         </div>
       )}
