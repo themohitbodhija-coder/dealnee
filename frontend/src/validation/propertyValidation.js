@@ -17,6 +17,9 @@ import {
   isResaleCategory,
 } from '../constants/propertyConstants';
 
+import {
+  calculateResalePlotPrice, isPositivePlotNumber, isResidentialPlot, PLOT_DIMENSIONS, RESALE_PLOT_DIMENSIONS,
+} from '../utils/plotDetails';
 import { usesSupabase } from '../lib/backend';
 
 export const validateResaleSubtype = ({ propertyType, category, subcategory }) => {
@@ -24,7 +27,7 @@ export const validateResaleSubtype = ({ propertyType, category, subcategory }) =
     return undefined;
   }
 
-  const options = getSubcategoriesForType(propertyType, category, usesSupabase);
+  const options = getSubcategoriesForType(propertyType, category);
   if (!options.some(option => option.value === subcategory)) {
     return 'Choose a subtype for this resale property.';
   }
@@ -261,6 +264,34 @@ export const validateImages = (images) => {
   return errors;
 };
 
+export const validatePlotDetails = (formData) => {
+  const { propertyType, subcategory } = formData.basicInfo;
+  if (!isResidentialPlot(propertyType, subcategory)) return {};
+
+  const resale = subcategory === BUY_SUBCATEGORIES.RESALE_PLOT;
+  const { area, price, areaUnit } = formData.propertyDetails;
+  const errors = {};
+  if (!isPositivePlotNumber(area) || !validateArea(area)) errors.area = 'Enter a valid plot area.';
+  if (!resale && !areaUnit) errors.areaUnit = 'Select a plot area unit.';
+
+  const rate = formData.resaleInfo.pricePerSqft;
+  if (resale && !isPositivePlotNumber(rate)) errors.pricePerSqft = 'Enter a positive price per sq ft with up to four decimal places.';
+  const total = resale ? calculateResalePlotPrice(area, rate) : price;
+  if ((!resale || (!errors.area && !errors.pricePerSqft)) && !validatePrice(total)) {
+    errors.price = 'Enter values that give a valid positive price.';
+  }
+
+  const dimensions = resale ? RESALE_PLOT_DIMENSIONS : PLOT_DIMENSIONS;
+  const info = resale ? formData.resaleInfo : formData.newProjectInfo;
+  for (const [field, label] of [...dimensions, ['roadWidth', 'Facing Road Width (ft)']]) {
+    const value = field === 'roadWidth' ? formData.location.roadWidth : info[field];
+    if (value != null && value !== '' && !isPositivePlotNumber(value)) {
+      errors[field] = `${label} must be positive with up to four decimal places.`;
+    }
+  }
+  return errors;
+};
+
 // ==================== COMPLETE FORM VALIDATION ====================
 // ==================== COMPLETE FORM VALIDATION ====================
 export const validateCompleteForm = (formData) => {
@@ -274,7 +305,8 @@ export const validateCompleteForm = (formData) => {
   const { propertyType, subcategory, category } = formData.basicInfo;
 
   // Property details validation
-  allErrors.propertyDetails = validatePropertyDetails(
+  const isPlot = isResidentialPlot(propertyType, subcategory);
+  allErrors.propertyDetails = isPlot ? validatePlotDetails(formData) : validatePropertyDetails(
     formData.propertyDetails,
     propertyType,
     subcategory
@@ -284,7 +316,7 @@ export const validateCompleteForm = (formData) => {
   // NOTE: For the Details step, many of these are optional in UI.
   // Use the same conditional logic as step validation to avoid blocking submission
   // when fields are not applicable/not shown.
-  if (isResaleCategory(category)) {
+  if (isResaleCategory(category) && !isPlot) {
     allErrors.resaleInfo = validateResaleInfo(formData.resaleInfo);
   } else if (isRentalProperty(propertyType)) {
     allErrors.rentalInfo = validateRentalInfo(formData.rentalInfo);
@@ -292,6 +324,9 @@ export const validateCompleteForm = (formData) => {
     allErrors.commercialDetails = validateCommercialDetails(formData.commercialDetails);
   }
 
+  if (subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT) {
+    allErrors.projectPricing = validateProjectPricing(formData.projectPricing, true);
+  }
   allErrors.images = validateImages(formData.images);
 
   if (propertyType === PROPERTY_TYPES.COMMERCIAL) {
@@ -332,6 +367,7 @@ export const validateStep = (step, formData) => {
 
     case 3:
     case 'details':
+      if (isResidentialPlot(propertyType, subcategory)) return validatePlotDetails(formData);
       let stepErrors = {};
 
       // PropertyDetailsStep only validates propertyDetails and type-specific info
@@ -389,13 +425,14 @@ export const validateStep = (step, formData) => {
         console.log(`[validateStep ProjectDetails] newProjectInfo errors:`, newProjErrors);
       }
       
-      const pricingErrors = validateProjectPricing(formData.projectPricing);
+      const pricingErrors = validateProjectPricing(formData.projectPricing, subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT);
       if (Object.keys(pricingErrors).length > 0) {
         projectErrors = { ...projectErrors, ...pricingErrors };
         console.log(`[validateStep ProjectDetails] projectPricing errors:`, pricingErrors);
       }
       
-      const unitErrors = validateUnitConfiguration(formData.projectPricing.unitConfigurations);
+      const unitErrors = subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT
+        ? {} : validateUnitConfiguration(formData.projectPricing.unitConfigurations);
       if (Object.keys(unitErrors).length > 0) {
         projectErrors.unitConfigurations = unitErrors;
         console.log(`[validateStep ProjectDetails] unitConfiguration errors:`, unitErrors);
@@ -515,7 +552,7 @@ export const validateNewProjectInfo = (data) => {
 };
 
 // ==================== PROJECT PRICING VALIDATION ====================
-export const validateProjectPricing = (data) => {
+export const validateProjectPricing = (data, isPlot = false) => {
   const errors = {};
 
   // Make pricing fields optional - only validate if they are filled
@@ -527,7 +564,7 @@ export const validateProjectPricing = (data) => {
     errors.priceRange = 'Price range must be at least 3 characters';
   }
 
-  if (data.pricePerSqft && !validatePrice(data.pricePerSqft)) {
+  if (data.pricePerSqft && !(isPlot ? isPositivePlotNumber(data.pricePerSqft) : validatePrice(data.pricePerSqft))) {
     errors.pricePerSqft = 'Price per sq.ft must be greater than 0';
   }
 
@@ -725,18 +762,20 @@ export const validateCompleteFormExpanded = (formData) => {
   // Property type specific validation
   const { propertyType, subcategory } = formData.basicInfo;
 
+  const isPlot = isResidentialPlot(propertyType, subcategory);
   // New project
   if (subcategory && subcategory.startsWith('NEW_PROJECT')) {
     allErrors.newProjectInfo = validateNewProjectInfo(formData.newProjectInfo);
-    allErrors.projectPricing = validateProjectPricing(formData.projectPricing);
-    const unitErrors = validateUnitConfiguration(formData.projectPricing.unitConfigurations);
+    allErrors.projectPricing = validateProjectPricing(formData.projectPricing, subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT);
+    const unitErrors = subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT
+      ? {} : validateUnitConfiguration(formData.projectPricing.unitConfigurations);
     if (Object.keys(unitErrors).length > 0) {
       allErrors.unitConfigurations = unitErrors;
     }
   }
 
   // Resale
-  if (subcategory && subcategory.startsWith('RESALE')) {
+  if (!isPlot && subcategory && subcategory.startsWith('RESALE')) {
     allErrors.resaleInfo = validateResaleInfo(formData.resaleInfo);
   }
 
@@ -751,7 +790,7 @@ export const validateCompleteFormExpanded = (formData) => {
   }
 
   // Property details
-  allErrors.propertyDetails = validatePropertyDetails(formData.propertyDetails, propertyType, subcategory);
+  allErrors.propertyDetails = isPlot ? validatePlotDetails(formData) : validatePropertyDetails(formData.propertyDetails, propertyType, subcategory);
 
   // Images - Required at submission time
   if (!formData.images || formData.images.length === 0) {

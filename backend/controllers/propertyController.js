@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Property = require('../models/Property');
 const Category = require('../models/Category');
+const { preparePlotWrite } = require('../utils/plotDetails');
 
 const getDisplayBathrooms = (property = {}) => {
   const values = [
@@ -475,8 +476,9 @@ exports.createProperty = async (req, res, next) => {
         console.error('[CreateProperty] Validation Error: Invalid rental info:', { rentalInfo, monthlyRent: rentalInfo?.monthlyRent });
         return res.status(400).json({ message: 'Validation failed', errors: { monthlyRent: 'Valid monthly rent is required for rental properties' } });
       }
-    } else {
-      // For buy and commercial, price is required
+    } else if (!(propertyType === 'BUY' && subcategory === 'RESALE_PLOT')) {
+      // Plot writes validate and calculate the resale asking price below.
+      // Other buy and commercial properties require an entered price.
       if (!price || Number(price) <= 0) {
         console.error('[CreateProperty] Validation Error: Invalid price for non-rental property:', { price, propertyType });
         return res.status(400).json({ message: 'Validation failed', errors: { price: 'Valid price is required' } });
@@ -620,6 +622,9 @@ exports.createProperty = async (req, res, next) => {
     if (projectPricing && Object.keys(projectPricing).length > 0) {
       propertyData.projectPricing = projectPricing;
     }
+
+    const plotErrors = preparePlotWrite(body, propertyData);
+    if (Object.keys(plotErrors).length) return res.status(400).json({ message: 'Validation failed', errors: plotErrors });
 
     // Create the property in database
     console.log('[CreateProperty] Attempting to save property to database...', {
@@ -850,6 +855,9 @@ exports.updateProperty = async (req, res, next) => {
     if (projectPricing && Object.keys(projectPricing).length > 0) {
       updateData.projectPricing = projectPricing;
     }
+
+    const plotErrors = preparePlotWrite(body, updateData, existingProperty);
+    if (Object.keys(plotErrors).length) return res.status(400).json({ message: 'Validation failed', errors: plotErrors });
 
     console.log('[UpdateProperty] Final bathrooms being saved:', updateData.bathrooms);
 

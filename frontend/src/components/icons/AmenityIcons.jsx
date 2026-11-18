@@ -54,6 +54,7 @@ const ICON_MAP = {
   gated_community: <FaDoorClosed />,
   community_hall: <FaUsers />,
   power_backup: <FaBolt />,
+  electrification: <FaBolt />,
 
   // Facilities (nearby)
   school: <FaSchool />,

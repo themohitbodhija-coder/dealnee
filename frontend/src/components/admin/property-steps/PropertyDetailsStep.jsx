@@ -32,6 +32,31 @@ import {
 import AmenityIcons from '../../../components/icons/AmenityIcons';
 import { getDefaultFurnishingItemsForStatus } from '../../../utils/propertyFormUtils';
 
+import {
+  calculateResalePlotPrice, ELECTRIFICATION, isPlotAmenity, PLOT_DIMENSIONS, RESALE_PLOT_DIMENSIONS,
+} from '../../../utils/plotDetails';
+
+const PlotNumberInput = ({ field, label, value, onChange, error, readOnly = false, required = false }) => (
+  <div>
+    <label htmlFor={field} className="block text-sm font-semibold text-gray-700 mb-2">
+      {label} {required && <span className="text-red-500" aria-hidden="true">*</span>}
+    </label>
+    <input
+      id={field}
+      type="number"
+      min="0"
+      step="any"
+      value={value ?? ''}
+      onChange={onChange}
+      readOnly={readOnly}
+      required={required}
+      aria-invalid={Boolean(error)}
+      className={`w-full px-4 py-3 border rounded-lg ${readOnly ? 'bg-gray-100' : 'focus:ring-2 focus:ring-purple-500'} ${error ? 'border-red-500' : 'border-gray-300'}`}
+    />
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
+
 const AmenityOptions = ({ options, selected, onChange }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
     {options.map(({ id, label }) => (
@@ -60,11 +85,14 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
   const isResaleSelection = normalizedCategory.includes('RESALE') || normalizedSubcategory.includes('RESALE');
   const isNewProjectPlot = propertyType === 'BUY' && subcategory === 'NEW_PROJECT_PLOT';
   const isResalePlot = propertyType === 'BUY' && subcategory === 'RESALE_PLOT';
+  const isPlot = isNewProjectPlot || isResalePlot;
+  const plotDimensions = isResalePlot ? RESALE_PLOT_DIMENSIONS : PLOT_DIMENSIONS;
+  const dimensionsSection = isResalePlot ? 'resaleInfo' : 'newProjectInfo';
   const shouldShowCommonFields = isBuyProperty(propertyType) || isRentalProperty(propertyType) || isNewProjectSelection;
   const shouldShowResaleFields = isResaleSelection && !isNewProjectSelection;
   const isCommercialBuy = isCommercialProperty(propertyType);
   const activeFurnishingStatus = rentalInfo.furnishingStatus || resaleInfo.furnishingStatus || '';
-  const shouldShowFurnishingItems = Boolean(activeFurnishingStatus && activeFurnishingStatus !== FURNISHING_STATUS.UNFURNISHED);
+  const shouldShowFurnishingItems = !isPlot && Boolean(activeFurnishingStatus && activeFurnishingStatus !== FURNISHING_STATUS.UNFURNISHED);
   const previousFurnishingStatusRef = useRef(activeFurnishingStatus);
 
   // Show error modal when errors change
@@ -203,7 +231,46 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
       </div>
 
       {/* ========== COMMON FIELDS - PRICE, AREA, BEDROOMS, BATHROOMS ========== */}
-      {shouldShowCommonFields && (
+      {isPlot && (
+        <div className="bg-purple-50 p-6 rounded-lg border border-purple-200 space-y-4">
+          <h3 className="text-lg font-semibold text-purple-900">Plot Details</h3>
+          <PlotNumberInput field="area" label={isResalePlot ? 'Plot Area (sq ft)' : 'Plot Area'} required
+            value={propertyDetails.area} error={errors.area}
+            onChange={(event) => handleFieldChange('propertyDetails', 'area', event.target.value)} />
+          {isResalePlot ? (
+            <>
+              <PlotNumberInput field="pricePerSqft" label="Price per sq ft (₹)" required
+                value={resaleInfo.pricePerSqft} error={errors.pricePerSqft}
+                onChange={(event) => handleFieldChange('resaleInfo', 'pricePerSqft', event.target.value)} />
+              <PlotNumberInput field="price" label="Total Price (₹)"
+                value={calculateResalePlotPrice(propertyDetails.area, resaleInfo.pricePerSqft)}
+                error={errors.price} readOnly />
+            </>
+          ) : (
+            <>
+              <div>
+                <label htmlFor="plot-area-unit" className="block text-sm font-semibold text-gray-700 mb-2">Plot Area Unit</label>
+                <select id="plot-area-unit" value={propertyDetails.areaUnit}
+                  onChange={(event) => handleFieldChange('propertyDetails', 'areaUnit', event.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg">
+                  {AREA_UNITS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+                </select>
+                {errors.areaUnit && <p className="text-red-500 text-xs mt-1">{errors.areaUnit}</p>}
+              </div>
+              <PlotNumberInput field="price" label="Price (₹)" required value={propertyDetails.price} error={errors.price}
+                onChange={(event) => handleFieldChange('propertyDetails', 'price', event.target.value)} />
+            </>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {plotDimensions.map(([field, label]) => (
+              <PlotNumberInput key={field} field={field} label={label}
+                value={formData[dimensionsSection][field]} error={errors[field]}
+                onChange={(event) => handleFieldChange(dimensionsSection, field, event.target.value)} />
+            ))}
+          </div>
+        </div>
+      )}
+      {shouldShowCommonFields && !isPlot && (
         <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-lg border border-purple-200 mb-6">
           <h3 className="text-lg font-semibold text-purple-900 mb-4">📋 Basic Property Details</h3>
 
@@ -265,19 +332,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
           </div>
 
           {/* Bedrooms & Bathrooms */}
-          {isNewProjectPlot ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[['plotLength', 'Length (ft)'], ['plotWidth', 'Width (ft)']].map(([field, label]) => (
-                <div key={field}>
-                  <label htmlFor={field} className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
-                  <input id={field} type="number" min="0" step="any" value={formData.newProjectInfo[field] ?? ''}
-                    onChange={(e) => handleFieldChange('newProjectInfo', field, e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                </div>
-              ))}
-            </div>
-          ) : shouldShowCommonFields && !isResalePlot && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Bedrooms
@@ -311,8 +366,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                 />
                 {errors.bathrooms && <p className="text-red-500 text-xs mt-1">{errors.bathrooms}</p>}
               </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -361,7 +415,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
               </select>
             </div>
 
-            <div>
+            {!isResalePlot && <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Furnishing Status</label>
               <select
                 value={resaleInfo.furnishingStatus}
@@ -373,10 +427,10 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                   <option key={key} value={value}>{getDisplayLabel(value)}</option>
                 ))}
               </select>
-            </div>
+            </div>}
           </div>
 
-          {shouldShowResaleFields && (
+          {!isResalePlot && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Floor Number</label>
@@ -685,10 +739,10 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
       )}
 
       {/* Facing Direction */}
-      {(isResaleCategory(category) || isCommercialProperty(propertyType)) && (
+      {(isResalePlot || isResaleCategory(category) || isCommercialProperty(propertyType)) && (
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Facing Direction</label>
-          <select
+          <label htmlFor="facing-direction" className="block text-sm font-semibold text-gray-700 mb-2">Facing Direction</label>
+          <select id="facing-direction"
             value={isCommercialBuy ? (commercialDetails.facing ?? '') : propertyDetails.facing}
             onChange={(e) => handleFieldChange(isCommercialBuy ? 'commercialDetails' : 'propertyDetails', 'facing', e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -749,9 +803,11 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
       )}
       <div>
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Amenities</h3>
-        <AmenityOptions options={AMENITIES} selected={selectedAmenities} onChange={handleAmenityChange} />
+        <AmenityOptions options={isPlot ? AMENITIES.filter(({ id }) => isPlotAmenity(id)) : AMENITIES} selected={selectedAmenities} onChange={handleAmenityChange} />
         <div className="mt-4 space-y-2">
-          {PREMIUM_AMENITY_GROUPS.map(({ label, amenities }) => {
+          {PREMIUM_AMENITY_GROUPS.map(({ label, amenities: groupAmenities }) => {
+            const amenities = isPlot ? groupAmenities.filter(({ id }) => isPlotAmenity(id)) : groupAmenities;
+            if (!amenities.length) return null;
             const selectedCount = amenities.filter(({ id }) => selectedAmenities.has(id)).length;
             return (
               <details key={label} className="rounded-lg border border-gray-200 p-3">
@@ -769,6 +825,21 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
           })}
         </div>
       </div>
+      {isPlot && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-800">Plot Facilities</h3>
+          <PlotNumberInput field="roadWidth" label="Facing Road Width (ft)"
+            value={formData.location.roadWidth} error={errors.roadWidth}
+            onChange={(event) => handleFieldChange('location', 'roadWidth', event.target.value)} />
+          <label className="flex items-center gap-2">
+            <input type="checkbox"
+              checked={(propertyDetails.facilities || []).includes(ELECTRIFICATION.id)}
+              onChange={(event) => handleFacilityChange(ELECTRIFICATION.id, event.target.checked)}
+              className="w-4 h-4 rounded text-purple-600" />
+            {ELECTRIFICATION.label}
+          </label>
+        </div>
+      )}
       {/* Facilities */}
       <div>
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Nearby Facilities</h3>

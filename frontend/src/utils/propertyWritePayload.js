@@ -1,9 +1,16 @@
+import {
+  calculateResalePlotPrice, ELECTRIFICATION, getPlotResaleInfo, isPlotAmenity, isPlotOutdoorFeature, isResidentialPlot,
+} from './plotDetails';
+
 const rules = {
   "resaleInfo": {
     "approval": "enum:BDA,BMC,NONE",
     "reraNumber": "text:120",
     "expectedPrice": "money",
     "pricePerSqft": "decimal",
+    "plotLength": "decimal",
+    "plotWidth": "decimal",
+    "frontageWidth": "decimal",
     "maintenanceCharges": "money0",
     "bookingAmount": "money0",
     "floorNumber": "integer",
@@ -117,26 +124,41 @@ export function propertyWritePayload(form, status = 'available') {
   const location=form.location||{};
   const category=isCommercial ? (basic.subcategory?.endsWith('_LEASE')?'COMMERCIAL_LEASE':'COMMERCIAL_BUY') : isRent?'RENT':isNew?'NEW_PROJECT':'RESALE';
   const land=basic.subcategory?.endsWith('_PLOT') || basic.subcategory==='COMMERCIAL_LAND_SALE';
+  const plot = isResidentialPlot(basic.propertyType, basic.subcategory);
+  const resalePlot = plot && isResale;
+  const price = resalePlot ? calculateResalePlotPrice(common.area, form.resaleInfo?.pricePerSqft) : common.price;
   const payload={
     title:(basic.title||'').trim(),description:(basic.description||'').trim(),propertyType:basic.propertyType,subcategory:basic.subcategory,category,
-    price:decimal(isRent ? (rental.monthlyRent || common.price) : isCommercial ? (commercial.price || common.price) : common.price),
-    area:decimal(isCommercial ? (commercial.builtUpArea || common.area) : common.area),areaUnit:common.areaUnit||'sq_ft',plotArea:decimal(common.plotArea),
+    price:decimal(isRent ? (rental.monthlyRent || common.price) : isCommercial ? (commercial.price || common.price) : price),
+    area:decimal(isCommercial ? (commercial.builtUpArea || common.area) : common.area),areaUnit:resalePlot?'sq_ft':common.areaUnit||'sq_ft',plotArea:plot?null:decimal(common.plotArea),
     bedrooms:land?0:(present(common.bedrooms)?common.bedrooms:present(rental.bedrooms)?rental.bedrooms:0),bathrooms:land?0:(present(common.bathrooms)?common.bathrooms:present(rental.bathrooms)?rental.bathrooms:0),
     location:Object.fromEntries(['address','city','state','locality','landmark'].map(key=>[key,(location[key]||'').trim()||null])),
     contact:{phone:String(form.contact?.phone||'').replace(/\D/g,'')},
-    furnishingStatus:(isCommercial?commercial.furnishingType:isRent?rental.furnishingStatus:form.resaleInfo?.furnishingStatus)||common.furnishing||null,
-    propertyAge:decimal(isCommercial?commercial.propertyAge:isResale?form.resaleInfo?.propertyAge:null),
+    furnishingStatus:plot?null:(isCommercial?commercial.furnishingType:isRent?rental.furnishingStatus:form.resaleInfo?.furnishingStatus)||common.furnishing||null,
+    propertyAge:plot?null:decimal(isCommercial?commercial.propertyAge:isResale?form.resaleInfo?.propertyAge:null),
     featured:common.featured===true,status,
-    amenities:common.amenities||[],facilities:(common.facilities||[]).filter(v=>v!=='bank'),furnishingItems:common.furnishingItems||[],outdoorFeatures:common.outdoorFeatures||[],
-    commonInfo:details({...location,...common},rules.commonInfo),
+    amenities:plot?(common.amenities||[]).filter(isPlotAmenity):common.amenities||[],
+    facilities:(common.facilities||[]).filter(v=>v!=='bank' && (plot || v!==ELECTRIFICATION.id)),
+    furnishingItems:plot?[]:common.furnishingItems||[],
+    outdoorFeatures:plot?(common.outdoorFeatures||[]).filter(isPlotOutdoorFeature):common.outdoorFeatures||[],
+    commonInfo:details(plot ? {
+      roadWidth: location.roadWidth,
+      facing: resalePlot ? common.facing : undefined,
+      mainRoadConnectivity: location.mainRoadConnectivity,
+      nearbyMetroRailwayAirport: location.nearbyMetroRailwayAirport,
+      googleMapLocation: location.googleMapLocation,
+    } : {...location,...common},rules.commonInfo),
   };
   payload.location.latitude=decimal(location.latitude); payload.location.longitude=decimal(location.longitude);
-  if(isResale) payload.resaleInfo=omit(details(form.resaleInfo,rules.resaleInfo),['propertyAge','furnishingStatus']);
+  if(isResale) payload.resaleInfo=resalePlot
+    ? details(getPlotResaleInfo(form.resaleInfo),rules.resaleInfo)
+    : omit(details(form.resaleInfo,rules.resaleInfo),['propertyAge','furnishingStatus','plotLength','plotWidth','frontageWidth']);
   if(isRent) payload.rentalInfo=omit(details(rental,rules.rentalInfo),['monthlyRent','bedrooms','bathrooms','furnishingStatus']);
   if(isCommercial) payload.commercialDetails=omit(details(commercial,rules.commercialDetails),['price','builtUpArea','propertyAge','furnishingType']);
   if(isNew) {
     payload.newProjectInfo=details(form.newProjectInfo,rules.newProjectInfo);
-    payload.projectPricing=details(form.projectPricing,rules.projectPricing);
+    const pricing = plot ? { ...form.projectPricing, unitConfigurations: undefined } : form.projectPricing;
+    payload.projectPricing=details(pricing,rules.projectPricing);
   }
   return payload;
 }

@@ -4,6 +4,8 @@ import { FaBed, FaBath, FaRuler, FaHeart, FaRegHeart, FaCamera, FaArrowRight } f
 import { getImageUrl } from '../../utils/imageUrl';
 import { getPropertyRoomStats, getPropertyLocationLabel } from '../../utils/propertyFormUtils';
 
+import { isResidentialPlot } from '../../utils/plotDetails';
+
 const PropertyCard = ({ property, onWishlistToggle, isWishlisted }) => {
   const [imageError, setImageError] = React.useState(false);
   const currentImageIndex = 0;
@@ -183,7 +185,7 @@ const PropertyCard = ({ property, onWishlistToggle, isWishlisted }) => {
           {/* BHK Type and Count */}
           <div className="mb-1">
             <h3 className="text-sm font-bold text-gray-800 line-clamp-1">
-              {property.propertyType === 'BUY' && property.subcategory === 'NEW_PROJECT_PLOT' ? propertyType : property.propertyType === 'COMMERCIAL'
+              {isResidentialPlot(property.propertyType, property.subcategory) ? 'Plot' : property.propertyType === 'COMMERCIAL'
                 ? `${property.title || propertyType} · ${propertyType}`
                 : `${bhkCount} ${propertyType}`}
             </h3>

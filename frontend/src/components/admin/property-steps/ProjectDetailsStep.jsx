@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { FaBuilding, FaTimes } from 'react-icons/fa';
 import {
+  BUY_SUBCATEGORIES,
   getProjectStatusOptions,
   getApprovalTypes,
 } from '../../../constants/propertyConstants';
@@ -12,6 +13,7 @@ import {
 const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const { newProjectInfo, projectPricing } = formData;
+  const isPlot = formData.basicInfo.subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT;
   const projectErrors = errors.newProjectInfo || {};
   const pricingErrors = errors.projectPricing || {};
   const unitErrors = errors.unitConfigurations || {};
@@ -48,6 +50,7 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
   // Uses the first unit configuration (2 BHK, then 3 BHK, then 4 BHK) that
   // has a carpet area entered.
   useEffect(() => {
+    if (isPlot) return;
     const startingPrice = parseFloat(projectPricing.startingPrice);
     const { bhk2, bhk3, bhk4 } = projectPricing.unitConfigurations;
     const referenceCarpetArea = [bhk2, bhk3, bhk4]
@@ -61,6 +64,7 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
       }
     }
   }, [
+    isPlot,
     projectPricing.startingPrice,
     projectPricing.unitConfigurations,
     projectPricing.pricePerSqft,
@@ -293,18 +297,22 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Price Per Sq.Ft <span className="text-gray-400 font-normal">(auto-calculated)</span>
+            <label htmlFor="project-price-per-sq-ft" className="block text-sm font-semibold text-gray-700 mb-2">
+              Price per sq ft {!isPlot && <span className="text-gray-400 font-normal">(auto-calculated)</span>}
             </label>
             <div className="relative">
               <span className="absolute left-4 top-3 text-gray-500">₹</span>
               <input
+                id="project-price-per-sq-ft"
                 type="number"
+                min="0"
+                step="any"
                 value={projectPricing.pricePerSqft}
-                readOnly
+                onChange={(event) => handlePricingFieldChange('pricePerSqft', event.target.value)}
+                readOnly={!isPlot}
                 placeholder="0"
-                title="Automatically calculated as Starting Price ÷ Carpet Area"
-                className={`w-full pl-8 pr-4 py-3 border rounded-lg bg-gray-100 cursor-not-allowed focus:outline-none ${
+                title={isPlot ? undefined : 'Automatically calculated as Starting Price ÷ Carpet Area'}
+                className={`w-full pl-8 pr-4 py-3 border rounded-lg ${isPlot ? '' : 'bg-gray-100 cursor-not-allowed'} ${
                   pricingErrors.pricePerSqft ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -317,7 +325,7 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
       </div>
 
       {/* Unit Configurations */}
-      <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+      {!isPlot && <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
         <h3 className="text-lg font-semibold text-blue-900 mb-6">Unit Configurations</h3>
 
         <div className="space-y-6">
@@ -392,7 +400,7 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
             );
           })}
         </div>
-      </div>
+      </div>}
     </div>
   );
 };

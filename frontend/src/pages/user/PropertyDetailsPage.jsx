@@ -10,6 +10,11 @@ import { getDisplayLabel, FACILITIES } from '../../constants/propertyConstants';
 import { PREMIUM_AMENITY_LABELS } from '../../constants/premiumAmenities';
 import { getFurnishingItemDisplayLabels, getPropertyRoomStats, getPropertyLocationLabel } from '../../utils/propertyFormUtils';
 
+import {
+  ELECTRIFICATION, getPlotFacingLabel, getPlotResaleInfo, getResalePlotAreaInSquareFeet, isPlotAmenity, isPlotOutdoorFeature,
+  isPositivePlotNumber, isResidentialPlot, PLOT_DIMENSIONS, PLOT_FACILITIES, RESALE_PLOT_DIMENSIONS,
+} from '../../utils/plotDetails';
+
 const displayNumber = value => value == null || !Number.isFinite(Number(value)) ? 'N/A' : Number(value).toLocaleString();
 
 const PropertyDetailsPage = () => {
@@ -65,7 +70,18 @@ const PropertyDetailsPage = () => {
   const rentalInfo = property.rentalInfo || {};
   const projectInfo = property.newProjectInfo || {};
   const projectPricing = property.projectPricing || {};
-  const resaleInfo = property.resaleInfo || {};
+  const isPlot = isResidentialPlot(property.propertyType, property.subcategory);
+  const isResalePlot = isPlot && property.subcategory === 'RESALE_PLOT';
+  const resaleInfo = isResalePlot ? getPlotResaleInfo(property.resaleInfo) : property.resaleInfo || {};
+  const facing = property.propertyDetails?.facing ?? property.resaleInfo?.facing;
+  const roadWidth = isPlot ? property.propertyDetails?.roadWidth ?? property.location?.roadWidth : null;
+  const hasRoadWidth = isPositivePlotNumber(roadWidth);
+  const plotArea = isResalePlot ? getResalePlotAreaInSquareFeet(property) : property.area;
+  const areaUnit = isResalePlot ? 'sq ft' : ({ sq_ft: 'sq ft', sq_m: 'sq m', sq_yards: 'sq yd' }[property.areaUnit] ?? property.areaUnit);
+  const facilities = (property.facilities ?? []).filter(facility => isPlot || facility !== ELECTRIFICATION.id);
+  const facilityDefinitions = isPlot ? PLOT_FACILITIES : FACILITIES;
+  const amenities = (property.amenities ?? []).filter(amenity => !isPlot || isPlotAmenity(amenity));
+  const outdoorFeatures = (property.outdoorFeatures ?? []).filter(feature => !isPlot || isPlotOutdoorFeature(feature));
   const roomStats = getPropertyRoomStats(property);
   const bedrooms = roomStats.bedrooms;
   const bathrooms = roomStats.bathrooms;
@@ -81,10 +97,10 @@ const PropertyDetailsPage = () => {
   const isRentalProperty = normalizedPropertyType === 'RENT';
   const isNewProjectProperty = normalizedSubcategory.includes('NEW_PROJECT') || normalizedCategory.includes('NEW_PROJECT') || Boolean(projectInfo && Object.values(projectInfo).some((value) => value !== '' && value !== null && value !== undefined));
   const isResaleProperty = normalizedSubcategory.includes('RESALE') || normalizedCategory.includes('RESALE');
-  const hasResaleData = Object.values(resaleInfo).some((value) => value !== '' && value !== null && value !== undefined && value !== false);
+  const hasResaleData = (isResalePlot && Boolean(facing)) || Object.values(resaleInfo).some((value) => value !== '' && value !== null && value !== undefined && value !== false);
   const showRentalDetails = isRentalProperty && (Object.keys(rentalInfo).length > 0 || Boolean(furnishingStatus));
-  const showResaleDetails = isResaleProperty && hasResaleData;
-  const showProjectDetails = isNewProjectProperty && (Object.keys(projectInfo).length > 0 || Object.keys(projectPricing).length > 0);
+  const showResaleDetails = (isResalePlot || (!isPlot && isResaleProperty)) && hasResaleData;
+  const showProjectDetails = !isResalePlot && isNewProjectProperty && (Object.keys(projectInfo).length > 0 || Object.keys(projectPricing).length > 0);
   const furnishingItemValues = property.furnishingItems
     || property.propertyDetails?.furnishingItems
     || rentalInfo.furnishingItems
@@ -189,7 +205,7 @@ const PropertyDetailsPage = () => {
               </div>
 
               {/* Price */}
-              <div className="text-4xl font-bold text-red-600 mb-6">₹{displayNumber(property.price)}</div>
+              <div className="text-4xl font-bold text-red-600 mb-6">₹{isPlot ? Number(property.price).toLocaleString('en-IN') : displayNumber(property.price)}</div>
 
               {/* Features */}
               <div className="grid grid-cols-3 gap-4 mb-8 pb-8 border-b">
@@ -205,11 +221,11 @@ const PropertyDetailsPage = () => {
                     <p className="text-gray-600">{bathrooms} Bathrooms</p>
                   </div>
                 )}
-                {property.area > 0 && (
+                {(isPlot ? plotArea : property.area) > 0 && (
                   <div className="text-center">
                     <FaRuler className="text-3xl text-red-600 mx-auto mb-2" />
                     <p className="text-gray-600">
-                      Super Built-up Area: {property.area} {property.areaUnit}
+                      {isPlot ? `Plot Area: ${plotArea} ${areaUnit}` : `Super Built-up Area: ${property.area} ${property.areaUnit}`}
                     </p>
                   </div>
                 )}
@@ -291,9 +307,9 @@ const PropertyDetailsPage = () => {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                     {property.propertyType === 'BUY' && property.subcategory === 'NEW_PROJECT_PLOT' && (
                       <>
-                        {['plotLength', 'plotWidth'].map((field) => projectInfo[field] != null && (
+                        {PLOT_DIMENSIONS.map(([field, label]) => isPositivePlotNumber(projectInfo[field]) && (
                           <div key={field}>
-                            <p className="text-gray-600 text-sm">{field === 'plotLength' ? 'Length' : 'Width'} (ft)</p>
+                            <p className="text-gray-600 text-sm">{label}</p>
                             <p className="text-gray-800 font-semibold">{projectInfo[field]}</p>
                           </div>
                         ))}
@@ -380,6 +396,18 @@ const PropertyDetailsPage = () => {
                       <div>
                         <p className="text-gray-600 text-sm">Price Per Sq.Ft</p>
                         <p className="text-gray-800 font-semibold">₹{displayNumber(resaleInfo.pricePerSqft)}</p>
+                      </div>
+                    )}
+                    {isResalePlot && RESALE_PLOT_DIMENSIONS.map(([field, label]) => isPositivePlotNumber(resaleInfo[field]) && (
+                      <div key={field}>
+                        <p className="text-gray-600 text-sm">{label}</p>
+                        <p className="text-gray-800 font-semibold">{resaleInfo[field]}</p>
+                      </div>
+                    ))}
+                    {isResalePlot && facing && (
+                      <div>
+                        <p className="text-gray-600 text-sm">Facing Direction</p>
+                        <p className="text-gray-800 font-semibold">{getPlotFacingLabel(facing)}</p>
                       </div>
                     )}
                     {resaleInfo.maintenanceCharges && (
@@ -563,13 +591,13 @@ const PropertyDetailsPage = () => {
               </div>
 
               {/* Amenities */}
-              {property.amenities && property.amenities.length > 0 && (
+              {amenities.length > 0 && (
                 <div className="mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
                     <FaCheckCircle className="text-red-600 mr-2" /> Amenities
                   </h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {property.amenities.map((amenity, idx) => (
+                    {amenities.map((amenity, idx) => (
                       <div key={idx} className="flex items-center space-x-2 text-gray-700">
                         {/* amenity may be id or label; try to render icon by id first */}
                         <span>
@@ -583,14 +611,20 @@ const PropertyDetailsPage = () => {
               )}
 
               {/* Facilities */}
-              {property.facilities && property.facilities.length > 0 && (
+              {(hasRoadWidth || facilities.length > 0) && (
                 <div className="mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
                     <FaInfo className="text-red-600 mr-2" /> Facilities
                   </h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {property.facilities.map((facility, idx) => {
-                      const definition = FACILITIES.find((item) => item.id === facility || item.label.toLowerCase() === String(facility).toLowerCase());
+                    {hasRoadWidth && (
+                      <div className="flex items-center space-x-2 text-gray-700">
+                        <FaRuler className="text-red-600 w-5 h-5 flex-shrink-0" />
+                        <span>Facing Road Width: {Number(roadWidth).toLocaleString('en-IN', { maximumFractionDigits: 4 })} ft</span>
+                      </div>
+                    )}
+                    {facilities.map((facility, idx) => {
+                      const definition = facilityDefinitions.find((item) => item.id === facility || item.label.toLowerCase() === String(facility).toLowerCase());
                       return (
                       <div key={idx} className="flex items-center space-x-2 text-gray-700">
                         <AmenityIcons id={definition?.id || facility} className="text-red-600 w-5 h-5 flex-shrink-0" />
@@ -603,7 +637,7 @@ const PropertyDetailsPage = () => {
               )}
 
               {/* Furnishing Items */}
-              {furnishingItemLabels.length > 0 && (
+              {!isPlot && furnishingItemLabels.length > 0 && (
                 <div className="mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4">Furnishing Items</h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -618,11 +652,11 @@ const PropertyDetailsPage = () => {
               )}
 
               {/* Outdoor Features */}
-              {property.outdoorFeatures && property.outdoorFeatures.length > 0 && (
+              {outdoorFeatures.length > 0 && (
                 <div className="mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4">Outdoor Features</h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {property.outdoorFeatures.map((feature, idx) => (
+                    {outdoorFeatures.map((feature, idx) => (
                       <div key={idx} className="flex items-center space-x-2 text-gray-700">
                         <span className="text-purple-600">★</span>
                         <span>{feature}</span>

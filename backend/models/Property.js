@@ -61,6 +61,7 @@ const propertySchema = new mongoose.Schema(
       },
       landmark: String,
       locality: String,
+      roadWidth: Number,
     },
 
     // Contact
@@ -91,7 +92,7 @@ const propertySchema = new mongoose.Schema(
     },
     areaUnit: {
       type: String,
-      enum: ['sq_ft', 'sq_m', 'acres'],
+      enum: ['sq_ft', 'sq_m', 'sq_yards', 'acres'],
       default: 'sq_ft',
     },
     bedrooms: {
@@ -142,6 +143,10 @@ const propertySchema = new mongoose.Schema(
       reraNumber: String,
       expectedPrice: Number,
       pricePerSqft: Number,
+      plotLength: Number,
+      plotWidth: Number,
+      frontageWidth: Number,
+      facing: String,
       maintenanceCharges: Number,
       bookingAmount: Number,
       floorNumber: Number,

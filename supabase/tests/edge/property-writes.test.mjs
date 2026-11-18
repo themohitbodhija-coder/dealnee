@@ -50,7 +50,7 @@ test('delete requires expected version and exact request identity',async()=>{
 
 test('known database validation errors name the affected fields without exposing row details', async () => {
   for (const [code, message, field] of [
-    ['22023', 'Plot dimensions required', 'newProjectInfo.plotLength'],
+    ['22023', 'Invalid resale plot price', 'propertyDetails.price'],
     ['22023', 'Out of range: commercialDetails.carpetArea', 'commercialDetails.carpetArea'],
     ['23502', 'null value in column "address" of relation "properties" violates not-null constraint', 'location.address'],
     ['40001', 'Image is not validated or expired', 'images'],

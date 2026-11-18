@@ -1,3 +1,7 @@
+import {
+  calculateResalePlotPrice, ELECTRIFICATION, getPlotResaleInfo, isPlotAmenity, isPlotOutdoorFeature, isResidentialPlot,
+} from './plotDetails';
+
 /**
  * Property Form Utilities
  * Production-ready helper functions for form management, storage, and data transformation
@@ -209,7 +213,7 @@ export const getPropertyLocationLabel = (location = {}) => {
 };
 
 export const getPropertyRoomStats = (property = {}) => {
-  if (property.propertyType === 'BUY' && property.subcategory === 'NEW_PROJECT_PLOT') {
+  if (isResidentialPlot(property.propertyType, property.subcategory)) {
     return { bedrooms: 0, bathrooms: 0 };
   }
   const pickFirstNumeric = (...values) => {
@@ -425,7 +429,11 @@ export const transformFormDataForSubmission = (formData, userId) => {
 
   try {
     const isCommercialBuy = basicInfo.propertyType === 'COMMERCIAL';
-    const salePrice = isCommercialBuy ? (commercialDetails.price ?? propertyDetails.price) : propertyDetails.price;
+    const plot = isResidentialPlot(basicInfo.propertyType, basicInfo.subcategory);
+    const resalePlot = plot && basicInfo.subcategory === 'RESALE_PLOT';
+    const salePrice = resalePlot
+      ? calculateResalePlotPrice(propertyDetails.area, resaleInfo.pricePerSqft)
+      : isCommercialBuy ? (commercialDetails.price ?? propertyDetails.price) : propertyDetails.price;
     const saleArea = isCommercialBuy ? (commercialDetails.builtUpArea ?? propertyDetails.area) : propertyDetails.area;
     const submissionData = {
       // Basic Info
@@ -457,7 +465,7 @@ export const transformFormDataForSubmission = (formData, userId) => {
       // Property Details (Common)
       price: salePrice !== '' && salePrice != null ? Number(salePrice) : null,
       area: saleArea !== '' && saleArea != null ? Number(saleArea) : null,
-      areaUnit: propertyDetails.areaUnit || 'sq_ft',
+      areaUnit: resalePlot ? 'sq_ft' : propertyDetails.areaUnit || 'sq_ft',
       bedrooms: propertyDetails.bedrooms !== undefined && propertyDetails.bedrooms !== null && propertyDetails.bedrooms !== '' ? Number(propertyDetails.bedrooms) : null,
       bathrooms: propertyDetails.bathrooms !== undefined && propertyDetails.bathrooms !== null && propertyDetails.bathrooms !== '' ? Number(propertyDetails.bathrooms) : null,
       furnishing: propertyDetails.furnishing || rentalInfo.furnishingStatus || null,
@@ -468,7 +476,7 @@ export const transformFormDataForSubmission = (formData, userId) => {
       outdoorFeatures: Array.isArray(propertyDetails.outdoorFeatures) ? propertyDetails.outdoorFeatures : [],
       furnishingItems: Array.isArray(propertyDetails.furnishingItems) ? propertyDetails.furnishingItems : [],
       // Remove any 'bank' facility to prevent accidental submission of bank fields
-      facilities: (Array.isArray(propertyDetails.facilities) ? propertyDetails.facilities : []).filter(f => f !== 'bank'),
+      facilities: (Array.isArray(propertyDetails.facilities) ? propertyDetails.facilities : []).filter(f => f !== 'bank' && (plot || f !== ELECTRIFICATION.id)),
       // Featured Status
       featured: Boolean(propertyDetails.featured),
 
@@ -482,9 +490,10 @@ export const transformFormDataForSubmission = (formData, userId) => {
     };
 
     // Add Resale-specific info if applicable
-    if (resaleInfo && Object.keys(resaleInfo).length > 0) {
+    if (!plot && resaleInfo && Object.keys(resaleInfo).length > 0) {
+      const { plotLength, plotWidth, frontageWidth, ...housingResaleInfo } = resaleInfo;
       submissionData.resaleInfo = {
-        ...resaleInfo,
+        ...housingResaleInfo,
         approval: resaleInfo.approval || null,
         reraNumber: (resaleInfo.reraNumber ?? '').trim() || null,
         expectedPrice: resaleInfo.expectedPrice ? Number(resaleInfo.expectedPrice) : null,
@@ -600,6 +609,31 @@ export const transformFormDataForSubmission = (formData, userId) => {
           : null,
         unitConfigurations: projectPricing.unitConfigurations || {},
       };
+    }
+
+    if (plot) {
+      submissionData.location.roadWidth = location.roadWidth === '' || location.roadWidth == null ? null : Number(location.roadWidth);
+      submissionData.plotArea = null;
+      submissionData.bedrooms = 0;
+      submissionData.bathrooms = 0;
+      submissionData.furnishing = null;
+      submissionData.furnishingStatus = null;
+      submissionData.furnishingItems = [];
+      submissionData.amenities = submissionData.amenities.filter(isPlotAmenity);
+      submissionData.outdoorFeatures = submissionData.outdoorFeatures.filter(isPlotOutdoorFeature);
+      submissionData.rentalInfo = {};
+      submissionData.commercialDetails = {};
+      if (resalePlot) {
+        submissionData.resaleInfo = {
+          ...getPlotResaleInfo(resaleInfo),
+          facing: propertyDetails.facing || null,
+        };
+        submissionData.newProjectInfo = {};
+        submissionData.projectPricing = {};
+      } else {
+        submissionData.resaleInfo = {};
+        submissionData.projectPricing = { ...submissionData.projectPricing, unitConfigurations: {} };
+      }
     }
 
     return submissionData;

@@ -131,8 +131,7 @@ const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) 
   const categories = getCategoriesForType(formData.basicInfo.propertyType);
   const subcategories = getSubcategoriesForType(
     formData.basicInfo.propertyType,
-    formData.basicInfo.category,
-    usesSupabase
+    formData.basicInfo.category
   );
 
   return (

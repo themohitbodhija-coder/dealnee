@@ -3,8 +3,20 @@ import { FaCheckCircle, FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/f
 import { getDisplayLabel, PROPERTY_TYPES } from '../../../constants/propertyConstants';
 import { formatPrice, formatArea } from '../../../utils/propertyFormUtils';
 
+import {
+  calculateResalePlotPrice, ELECTRIFICATION, getPlotFacingLabel, isPlotAmenity, isResidentialPlot, PLOT_DIMENSIONS, RESALE_PLOT_DIMENSIONS,
+} from '../../../utils/plotDetails';
+
+const formatPlotPrice = value => value ? `₹${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 4 })}` : '';
+
 const ReviewStep = ({ formData, onEdit }) => {
   const commercialBuy = formData.basicInfo.propertyType === 'COMMERCIAL';
+  const { basicInfo, propertyDetails, resaleInfo, newProjectInfo, location } = formData;
+  const isPlot = isResidentialPlot(basicInfo.propertyType, basicInfo.subcategory);
+  const isResalePlot = isPlot && basicInfo.subcategory === 'RESALE_PLOT';
+  const dimensions = isResalePlot ? RESALE_PLOT_DIMENSIONS : PLOT_DIMENSIONS;
+  const dimensionValues = isResalePlot ? resaleInfo : newProjectInfo;
+  const amenities = isPlot ? (propertyDetails.amenities ?? []).filter(isPlotAmenity) : propertyDetails.amenities ?? [];
   const [expandedSections, setExpandedSections] = useState({
     basicInfo: true,
     location: true,
@@ -168,12 +180,12 @@ const ReviewStep = ({ formData, onEdit }) => {
         {expandedSections.propertyDetails && (
           <div className="p-4 space-y-3">
             <DetailRow
-              label="Super Built-up Area"
-              value={formatArea(commercialBuy ? formData.commercialDetails.builtUpArea : formData.propertyDetails.area, formData.propertyDetails.areaUnit)}
+              label={isPlot ? 'Plot Area' : 'Super Built-up Area'}
+              value={formatArea(commercialBuy ? formData.commercialDetails.builtUpArea : propertyDetails.area, isResalePlot ? 'sq_ft' : propertyDetails.areaUnit)}
               editSection="details"
             />
 
-            {formData.basicInfo.propertyType === PROPERTY_TYPES.BUY && formData.basicInfo.subcategory !== 'NEW_PROJECT_PLOT' && (
+            {formData.basicInfo.propertyType === PROPERTY_TYPES.BUY && !isPlot && (
               <>
                 <DetailRow
                   label="Bedrooms"
@@ -188,11 +200,21 @@ const ReviewStep = ({ formData, onEdit }) => {
               </>
             )}
 
-            {formData.basicInfo.propertyType === 'BUY' && formData.basicInfo.subcategory === 'NEW_PROJECT_PLOT' && (
+            {isResalePlot && (
               <>
-                <DetailRow label="Length (ft)" value={formData.newProjectInfo.plotLength ?? ''} editSection="details" />
-                <DetailRow label="Width (ft)" value={formData.newProjectInfo.plotWidth ?? ''} editSection="details" />
+                <DetailRow label="Price per sq ft" value={formatPlotPrice(resaleInfo.pricePerSqft)} editSection="details" />
+                <DetailRow label="Total Price" value={formatPlotPrice(calculateResalePlotPrice(propertyDetails.area, resaleInfo.pricePerSqft))} editSection="details" />
+                {propertyDetails.facing && <DetailRow label="Facing Direction" value={getPlotFacingLabel(propertyDetails.facing)} editSection="details" />}
               </>
+            )}
+            {isPlot && dimensions.map(([field, label]) => dimensionValues[field] && (
+              <DetailRow key={field} label={label} value={dimensionValues[field]} editSection="details" />
+            ))}
+            {isPlot && location.roadWidth && (
+              <DetailRow label="Facing Road Width (ft)" value={location.roadWidth} editSection="details" />
+            )}
+            {isPlot && propertyDetails.facilities?.includes(ELECTRIFICATION.id) && (
+              <DetailRow label={ELECTRIFICATION.label} value="Yes" editSection="details" />
             )}
 
                 {formData.basicInfo.propertyType === PROPERTY_TYPES.RENT && (
@@ -243,13 +265,13 @@ const ReviewStep = ({ formData, onEdit }) => {
               </>
             )}
 
-            {(formData.propertyDetails.amenities?.length ?? 0) > 0 && (
+            {amenities.length > 0 && (
               <DetailRow
                 label="Amenities"
                 value={
                   <div className="text-right">
                     <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-                      {formData.propertyDetails.amenities?.length ?? 0} selected
+                      {amenities.length} selected
                     </span>
                   </div>
                 }

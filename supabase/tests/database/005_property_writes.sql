@@ -11,7 +11,9 @@ update private.user_access set role='subadmin' where user_id in ('71000000-0000-
 insert into private.user_permissions values('71000000-0000-4000-8000-000000000002','manage_properties'),('71000000-0000-4000-8000-000000000003','manage_users');
 create function pg_temp.property_fixture(subtype text default 'RESALE_FLAT') returns jsonb language sql as $$
  select jsonb_build_object('title','Test property','description','A description','propertyType',s.property_type,'category',c.code,'subcategory',s.code,
- 'price','1234567.89','area','1200.1234','areaUnit','sq_yards','bedrooms',0,'bathrooms',0,
+ 'price',case when s.code='RESALE_PLOT' then '3000308.50' else '1234567.89' end,
+ 'area','1200.1234','areaUnit',case when s.code='RESALE_PLOT' then 'sq_ft' else 'sq_yards' end,'bedrooms',0,'bathrooms',0,
+ 'resaleInfo',case when s.code='RESALE_PLOT' then '{"pricePerSqft":"2500"}'::jsonb else '{}'::jsonb end,
  'location',jsonb_build_object('address','Example street','city','Bhubaneswar','state','Odisha','latitude','0','longitude','0'),
  'contact',jsonb_build_object('phone','9776631999'),'featured',false,
  'newProjectInfo',case when s.code like 'NEW_PROJECT_%' then '{"plotLength":"10","plotWidth":"20","projectName":"Test project","builderName":"Test builder","projectStatus":"NEW_LAUNCH"}'::jsonb else '{}'::jsonb end,
@@ -99,5 +101,40 @@ update private.user_access set active=false where user_id='71000000-0000-4000-80
 set local role authenticated;
 select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture(),'[]',null,null,gen_random_uuid())$s$,'42501','inactive existing JWT denied');
 reset role;
+-- Check plot creation, edits and the public projection through the actual RPCs.
+update private.user_access set active=true where user_id='71000000-0000-4000-8000-000000000002';
+set local role authenticated;
+do $$
+declare
+ resale jsonb := pg_temp.property_fixture('RESALE_PLOT') || '{
+  "area":"1200","price":"3000000.00",
+  "resaleInfo":{"pricePerSqft":"2500","plotLength":"40","plotWidth":"30","frontageWidth":"28"},
+  "commonInfo":{"facing":"NORTH","roadWidth":"26.5"},"facilities":["electrification","market"]}';
+ project jsonb := pg_temp.property_fixture('NEW_PROJECT_PLOT') || '{
+  "newProjectInfo":{"projectName":"Plot development"},"projectPricing":{"pricePerSqft":"3000"},
+  "commonInfo":{"roadWidth":"42"}}';
+ resale_id uuid; project_id uuid; listed jsonb;
+begin
+ resale_id := (public.save_property(gen_random_uuid(),resale,'[]',null,null,gen_random_uuid())#>>'{property,id}')::uuid;
+ project_id := (public.save_property(gen_random_uuid(),project,'[]',null,null,gen_random_uuid())#>>'{property,id}')::uuid;
+ listed := public.get_property(resale_id)->'property';
+ perform pg_temp.assert_true(listed->>'price'='3000000.00' and listed#>>'{resaleInfo,frontageWidth}'='28'
+  and listed#>>'{propertyDetails,facing}'='NORTH' and listed#>>'{propertyDetails,roadWidth}'='26.5'
+  and listed->'facilities' ? 'electrification','public resale plot exposes calculated price, dimensions and facilities');
+ listed := public.get_property(project_id)->'property';
+ perform pg_temp.assert_true(listed#>>'{propertyDetails,roadWidth}'='42' and listed#>>'{projectPricing,pricePerSqft}'='3000'
+  and listed#>'{projectPricing,unitConfigurations}'='{}' and not (listed->'facilities' ? 'electrification'),
+  'new project plot saves separately without dimensions, BHKs or electrification');
+ perform public.save_property(gen_random_uuid(),resale||'{"commonInfo":{"facing":"NORTH"}}','[]',resale_id,1);
+ listed := public.get_property(resale_id)->'property';
+ perform pg_temp.assert_true(listed#>>'{propertyDetails,roadWidth}' is null and listed->'facilities' ? 'electrification',
+  'clearing road width preserves electrification');
+end $$;
+select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture('RESALE_PLOT')
+ || '{"price":"1"}','[]',null,null,gen_random_uuid())$s$,'22023','tampered resale price rejected');
+select pg_temp.expect_error($s$select public.save_property(gen_random_uuid(),pg_temp.property_fixture('NEW_PROJECT_PLOT')
+ || '{"commonInfo":{"roadWidth":"0"}}','[]',null,null,gen_random_uuid())$s$,'22023','zero plot road width rejected');
+reset role;
 select 'PASS: protected writes, all 19 subtypes, strict JSON/arrays, retries, versions, rollback and inquiry retention';
+select 'PASS: plot price, editable measurements, facilities and public projection';
 rollback;

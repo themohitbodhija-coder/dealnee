@@ -17,6 +17,8 @@ import {
 } from '../../reducers/propertyFormReducer';
 import {
   validateCompleteForm,
+  validatePlotDetails,
+  validateProjectPricing,
   validateResaleSubtype,
 } from '../../validation/propertyValidation';
 import {
@@ -29,6 +31,7 @@ import {
   cleanCorruptedLocalStorage,
 } from '../../utils/propertyFormUtils';
 import { propertyService } from '../../services/api';
+import { getResalePlotAreaInSquareFeet } from '../../utils/plotDetails';
 import { usesSupabase } from '../../lib/backend';
 import { propertyWritePayload } from '../../utils/propertyWritePayload';
 import { propertyFieldIssues, propertySubmissionFeedback } from '../../utils/propertySubmissionFeedback';
@@ -345,6 +348,7 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
             longitude: editingProperty.location?.longitude ?? null,
             landmark: editingProperty.location?.landmark || '',
             locality: editingProperty.location?.locality || '',
+            roadWidth: editingProperty.propertyDetails?.roadWidth ?? editingProperty.location?.roadWidth ?? '',
           },
           contact: {
             // name/email intentionally omitted per user request
@@ -357,8 +361,10 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
             // Use ?? instead of || so a real value of 0 (e.g. 0 bathrooms)
             // isn't wiped out and shown as blank when editing.
             price: editingProperty.price ?? '',
-            area: editingProperty.area ?? '',
-            areaUnit: editingProperty.areaUnit || 'sq_ft',
+            area: editingProperty.subcategory === 'RESALE_PLOT'
+              ? getResalePlotAreaInSquareFeet(editingProperty) : editingProperty.area ?? '',
+            areaUnit: editingProperty.subcategory === 'RESALE_PLOT' ? 'sq_ft' : editingProperty.areaUnit || 'sq_ft',
+            facing: editingProperty.propertyDetails?.facing ?? editingProperty.resaleInfo?.facing ?? '',
             bedrooms: editingProperty.bedrooms ?? '',
             bathrooms: editingProperty.bathrooms ?? '',
             featured: editingProperty.featured ?? false,
@@ -564,8 +570,15 @@ const AddPropertyPage = ({ editingProperty, onEditComplete, onAddComplete }) => 
     // Existing listings can be saved without completing unrelated/missing fields.
     // The API still validates the update against the property schema.
     const resaleSubtypeError = editingProperty?._id && validateResaleSubtype(formData.basicInfo);
+    const plotErrors = editingProperty?._id ? validatePlotDetails(formData) : {};
+    const plotPricingErrors = editingProperty?._id && formData.basicInfo.subcategory === 'NEW_PROJECT_PLOT'
+      ? validateProjectPricing(formData.projectPricing, true) : {};
     const validationErrors = editingProperty?._id
-      ? (resaleSubtypeError ? { basicInfo: { subcategory: resaleSubtypeError } } : {})
+      ? {
+          ...(resaleSubtypeError && { basicInfo: { subcategory: resaleSubtypeError } }),
+          ...(Object.keys(plotErrors).length > 0 && { propertyDetails: plotErrors }),
+          ...(Object.keys(plotPricingErrors).length > 0 && { projectPricing: plotPricingErrors }),
+        }
       : validateCompleteForm(formData);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);

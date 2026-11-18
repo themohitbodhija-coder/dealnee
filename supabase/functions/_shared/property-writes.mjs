@@ -10,7 +10,7 @@ const knownValidationErrors = {
   'Invalid type/subtype': { 'basicInfo.subcategory': 'Choose a subtype for the selected property type.' },
   'Category/subtype mismatch': { 'basicInfo.category': 'Choose the category that matches the property subtype.' },
   'Details do not match subtype': { propertyDetails: 'Review the details for the selected property subtype.' },
-  'Plot dimensions required': { 'newProjectInfo.plotLength': 'Enter both the plot length and width.' },
+  'Invalid resale plot price': { 'propertyDetails.price': 'Enter a plot area and rate that match the total price.' },
   'Project names and at least one complete unit required': { 'projectPricing.unitConfigurations': 'Enter the project and builder names and complete at least one unit configuration.' },
   'Incomplete unit or carpet area must be smaller': { 'projectPricing.unitConfigurations': 'Enter the price and both areas for each unit. Carpet area must be smaller than super built-up area.' },
   'Invalid units': { 'projectPricing.unitConfigurations': 'Review the unit configurations.' },
