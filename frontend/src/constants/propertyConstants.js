@@ -169,6 +169,8 @@ export const AREA_UNITS = [
   { value: 'sq_yards', label: 'Sq. Yards' },
 ];
 
+export const LAND_AREA_UNITS = [...AREA_UNITS, { value: 'acres', label: 'Acres' }];
+
 // ==================== FURNISHING ====================
 export const FURNISHING_STATUS = {
   UNFURNISHED: 'UNFURNISHED',

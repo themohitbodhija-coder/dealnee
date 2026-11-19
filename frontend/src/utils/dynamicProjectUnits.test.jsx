@@ -45,7 +45,7 @@ test('adds repeated configurations one by one from the 1–5 BHK dropdown and re
   try {
     act(() => root.render(<Form />));
     const select = container.querySelector('#unit-bhk');
-    expect(Array.from(select.options).map(option => option.value)).toEqual(['1', '2', '3', '4', '5']);
+    expect(Array.from(select.options).map(option => option.value)).toEqual(['1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5']);
     act(() => { select.value = '5'; select.dispatchEvent(new Event('change', { bubbles: true })); });
     const add = () => Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Add Unit');
     act(() => add().click());

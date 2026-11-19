@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FaCheckCircle, FaChevronDown, FaChevronUp, FaEdit } from 'react-icons/fa';
 import { getDisplayLabel, PROPERTY_TYPES } from '../../../constants/propertyConstants';
+import { apartmentSummary, getUnitBhk, getUnitBedrooms, isApartmentProject } from '../../../utils/projectUnits';
 import { formatPrice, formatArea } from '../../../utils/propertyFormUtils';
 
 import {
@@ -11,7 +12,9 @@ const formatPlotPrice = value => value ? `₹${Number(value).toLocaleString('en-
 
 const ReviewStep = ({ formData, onEdit }) => {
   const commercialBuy = formData.basicInfo.propertyType === 'COMMERCIAL';
-  const { basicInfo, propertyDetails, resaleInfo, newProjectInfo, location } = formData;
+  const { basicInfo, resaleInfo, newProjectInfo, location } = formData;
+  const isApartment = isApartmentProject(basicInfo.subcategory);
+  const propertyDetails = isApartment ? { ...formData.propertyDetails, ...apartmentSummary(formData) } : formData.propertyDetails;
   const isPlot = isResidentialPlot(basicInfo.propertyType, basicInfo.subcategory);
   const isResalePlot = isPlot && basicInfo.subcategory === 'RESALE_PLOT';
   const dimensions = isResalePlot ? RESALE_PLOT_DIMENSIONS : PLOT_DIMENSIONS;
@@ -182,10 +185,10 @@ const ReviewStep = ({ formData, onEdit }) => {
             <DetailRow
               label={isPlot ? 'Plot Area' : 'Built-up Area'}
               value={formatArea(commercialBuy ? formData.commercialDetails.builtUpArea : propertyDetails.area, isResalePlot ? 'sq_ft' : propertyDetails.areaUnit)}
-              editSection="details"
+              editSection={isApartment ? 'project_details' : 'details'}
             />
 
-            {formData.basicInfo.propertyType === PROPERTY_TYPES.BUY && !isPlot && (
+            {formData.basicInfo.propertyType === PROPERTY_TYPES.BUY && !isPlot && !isApartment && (
               <>
                 <DetailRow
                   label="Bedrooms"
@@ -319,9 +322,9 @@ const ReviewStep = ({ formData, onEdit }) => {
           <DetailRow label="Total Project Area" value={formatArea(newProjectInfo?.totalProjectArea, newProjectInfo?.totalProjectAreaUnit)} editSection="project_details" />
           {Object.entries(formData.projectPricing?.unitConfigurations || {}).filter(([, unit]) => unit && Object.values(unit).some(value => value !== '' && value != null)).map(([code, unit], index) => (
               <div key={code} className="border rounded-lg p-3 space-y-2">
-                <h4 className="font-semibold">Unit {index + 1} · {code.match(/^bhk([1-5])/)?.[1]} BHK</h4>
-                {[['landArea', 'Land Area'], ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['superBuildUpArea', 'Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price']].map(([field, label]) => (
-                  <DetailRow key={field} label={label} value={field === 'price' ? formatPrice(unit[field]) : field.includes('Area') ? formatArea(unit[field], propertyDetails.areaUnit) : unit[field] ?? (field === 'bedrooms' ? code.match(/^bhk([1-5])/)?.[1] : '')} editSection="project_details" />
+                <h4 className="font-semibold">Unit {index + 1} · {getUnitBhk(code)} BHK</h4>
+                {[...(!isApartment ? [['landArea', 'Land Area']] : []), ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['superBuildUpArea', 'Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price']].map(([field, label]) => (
+                  <DetailRow key={field} label={label} value={field === 'price' ? formatPrice(unit[field]) : field.includes('Area') ? formatArea(unit[field], propertyDetails.areaUnit) : unit[field] ?? (field === 'bedrooms' ? getUnitBedrooms(code) : '')} editSection="project_details" />
                 ))}
               </div>
             ))}

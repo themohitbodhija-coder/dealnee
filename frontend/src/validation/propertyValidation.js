@@ -21,6 +21,7 @@ import {
 import {
   calculateResalePlotPrice, isPositivePlotNumber, isResidentialPlot, PLOT_DIMENSIONS, RESALE_PLOT_DIMENSIONS,
 } from '../utils/plotDetails';
+import { UNIT_CODE_PATTERN, isApartmentProject, populatedUnits, apartmentUnits } from '../utils/projectUnits';
 import { usesSupabase } from '../lib/backend';
 
 export const validateResaleSubtype = ({ propertyType, category, subcategory }) => {
@@ -189,6 +190,7 @@ export const validateContact = (data) => {
 // ==================== PROPERTY DETAILS VALIDATION ====================
 export const validatePropertyDetails = (data, propertyType, subcategory = '') => {
   const errors = {};
+  if (isApartmentProject(subcategory)) return errors;
 
   // Commercial properties collect price via commercialDetails.price (see
   // validateCommercialDetails) and don't show a generic Area field at all —
@@ -337,6 +339,11 @@ export const validateCompleteForm = (formData) => {
   if (subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT) {
     allErrors.projectPricing = validateProjectPricing(formData.projectPricing, true);
   }
+  if (isApartmentProject(subcategory)) {
+    allErrors.newProjectInfo = validateNewProjectInfo(formData.newProjectInfo, true);
+    allErrors.projectPricing = validateProjectPricing(formData.projectPricing);
+    allErrors.unitConfigurations = validateUnitConfiguration(formData.projectPricing.unitConfigurations, true);
+  }
   allErrors.images = validateImages(formData.images);
 
   if (propertyType === PROPERTY_TYPES.COMMERCIAL) {
@@ -429,7 +436,7 @@ export const validateStep = (step, formData) => {
       let projectErrors = {};
       
       // Only add errors if there are actual validation failures
-      const newProjErrors = validateNewProjectInfo(formData.newProjectInfo);
+      const newProjErrors = validateNewProjectInfo(formData.newProjectInfo, isApartmentProject(subcategory));
       if (Object.keys(newProjErrors).length > 0) {
         projectErrors = { ...projectErrors, ...newProjErrors };
         console.log(`[validateStep ProjectDetails] newProjectInfo errors:`, newProjErrors);
@@ -442,7 +449,7 @@ export const validateStep = (step, formData) => {
       }
       
       const unitErrors = subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT
-        ? {} : validateUnitConfiguration(formData.projectPricing.unitConfigurations);
+        ? {} : validateUnitConfiguration(formData.projectPricing.unitConfigurations, isApartmentProject(subcategory));
       if (Object.keys(unitErrors).length > 0) {
         projectErrors.unitConfigurations = unitErrors;
         console.log(`[validateStep ProjectDetails] unitConfiguration errors:`, unitErrors);
@@ -536,9 +543,13 @@ export const getSectionErrors = (section, allErrors) => {
 };
 
 // ==================== NEW PROJECT VALIDATION ====================
-export const validateNewProjectInfo = (data) => {
+export const validateNewProjectInfo = (data, isApartment = false) => {
   const errors = {};
 
+  if (isApartment) {
+    if (!data.projectName?.trim()) errors.projectName = 'Enter a project name';
+    if (!data.builderName?.trim()) errors.builderName = 'Enter a builder name';
+  }
   if (data.totalUnits !== '' && data.totalUnits != null && (!Number.isInteger(Number(data.totalUnits)) || Number(data.totalUnits) < 1 || Number(data.totalUnits) > 1000000000)) errors.totalUnits = 'Enter a positive whole number up to 1,000,000,000';
   if (data.totalProjectArea !== '' && data.totalProjectArea != null && !validateArea(data.totalProjectArea)) errors.totalProjectArea = 'Enter a valid total project area';
 
@@ -585,17 +596,21 @@ export const validateProjectPricing = (data, isPlot = false) => {
 };
 
 // ==================== UNIT CONFIGURATION VALIDATION ====================
-export const validateUnitConfiguration = (units = {}) => {
+export const validateUnitConfiguration = (units = {}, isApartment = false) => {
   const errors = {};
+  if (isApartment) {
+    units = apartmentUnits(units);
+    if (populatedUnits(units).length === 0) return { _form: { bhk: 'Add at least one complete unit configuration.' } };
+  }
   Object.entries(units || {}).forEach(([code, unit]) => {
     if (!unit || !Object.values(unit).some(value => value !== '' && value != null)) return;
     const issues = {};
-    if (!/^bhk[1-5](?:_[a-zA-Z0-9]+)?$/.test(code)) issues.bhk = 'Select 1–5 BHK';
+    if (!UNIT_CODE_PATTERN.test(code)) issues.bhk = 'Select a BHK option from 1 to 5, including half BHK configurations';
     if (!validateArea(unit.superBuildUpArea)) issues.superBuildUpArea = 'Enter a valid built-up area';
     if (!validateArea(unit.carpetArea)) issues.carpetArea = 'Enter a valid carpet area';
     if (!validatePrice(unit.price)) issues.price = 'Enter a valid price';
     if (Number(unit.carpetArea) >= Number(unit.superBuildUpArea)) issues.carpetArea = 'Carpet area must be less than built-up area';
-    if (unit.landArea !== '' && unit.landArea != null && !validateArea(unit.landArea)) issues.landArea = 'Enter a valid land area';
+    if (!isApartment && unit.landArea !== '' && unit.landArea != null && !validateArea(unit.landArea)) issues.landArea = 'Enter a valid land area';
     ['bedrooms', 'bathrooms'].forEach(field => {
       if (unit[field] !== '' && unit[field] != null && (!Number.isInteger(Number(unit[field])) || Number(unit[field]) < 1 || Number(unit[field]) > 100)) issues[field] = 'Enter a whole number from 1 to 100';
     });
@@ -730,10 +745,10 @@ export const validateCompleteFormExpanded = (formData) => {
   const isPlot = isResidentialPlot(propertyType, subcategory);
   // New project
   if (subcategory && subcategory.startsWith('NEW_PROJECT')) {
-    allErrors.newProjectInfo = validateNewProjectInfo(formData.newProjectInfo);
+    allErrors.newProjectInfo = validateNewProjectInfo(formData.newProjectInfo, isApartmentProject(subcategory));
     allErrors.projectPricing = validateProjectPricing(formData.projectPricing, subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT);
     const unitErrors = subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT
-      ? {} : validateUnitConfiguration(formData.projectPricing.unitConfigurations);
+      ? {} : validateUnitConfiguration(formData.projectPricing.unitConfigurations, isApartmentProject(subcategory));
     if (Object.keys(unitErrors).length > 0) {
       allErrors.unitConfigurations = unitErrors;
     }

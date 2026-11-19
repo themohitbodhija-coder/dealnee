@@ -15,16 +15,26 @@ test('unsupported or oversize selection never invokes the signer',async()=>{
   await expect(uploadPropertyImage({type:'image/png',size:5242881},{createSessionId:session,requestId:id})).rejects.toThrow('under 5 MB');
   expect(getSupabase).not.toHaveBeenCalled();
 });
-test('uploads to signed POST then finalizes before exposing reservation',async()=>{
+test.each([
+  ['photo.png', 'image/png', 'image/png'],
+  ['photo.jpg', 'image/jpeg', 'image/jpeg'],
+  ['photo.jpg', 'image/jpg', 'image/jpeg'],
+  ['photo.jpeg', 'image/pjpeg', 'image/jpeg'],
+  ['PHOTO.JPG', '', 'image/jpeg'],
+  ['photo.jpg', 'application/octet-stream', 'image/jpeg'],
+])('uploads %s (%s) with canonical MIME then finalizes',async(name,type,mimeType)=>{
   const oldCrypto=global.crypto;
   Object.defineProperty(global,'crypto',{configurable:true,value:{subtle:{digest:async()=>new Uint8Array(32).buffer}}});
   try {
     const invoke=jest.fn().mockResolvedValueOnce({data:{uploadId:id,post:{url:'https://s3.test',fields:{key:'pending/random'}},expiresAt:'soon'}}).mockResolvedValueOnce({data:{uploadId:id,state:'validated'}});
     getSupabase.mockReturnValue({functions:{invoke}});
     global.fetch=jest.fn().mockResolvedValue({ok:true});URL.createObjectURL=jest.fn().mockReturnValue('blob:preview');
-    const file=new File(['bytes'],'photo.png',{type:'image/png'});file.arrayBuffer=async()=>new Uint8Array([1,2,3]).buffer;
+    const file=new File(['bytes'],name,{type});file.arrayBuffer=async()=>new Uint8Array([1,2,3]).buffer;
     const image=await uploadPropertyImage(file,{createSessionId:session,requestId:id});
     expect(image.uploadState).toBe('validated');expect(image.uploadId).toBe(id);
+    expect(invoke.mock.calls[0][1].body.mimeType).toBe(mimeType);
+    expect(fetch.mock.calls[0][1].body.get('file').type).toBe(mimeType);
+    expect(fetch.mock.calls[0][1].body.get('file').name).toBe(name);
     expect(fetch.mock.calls[0][1].credentials).toBe('omit');expect(invoke.mock.calls[1][1].body).toEqual({action:'finalize',uploadId:id});
   } finally {Object.defineProperty(global,'crypto',{configurable:true,value:oldCrypto});}
 });

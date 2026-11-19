@@ -1,7 +1,7 @@
 import { getSupabase } from '../lib/supabase';
+import { getPropertyImageMime } from '../utils/propertyImageType';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const supported = ['image/jpeg','image/png','image/gif','image/webp','image/avif'];
 export const createPhotoSession = () => crypto.randomUUID();
 export function imageReferences(images) {
   if (!Array.isArray(images) || images.length > 20) throw new Error('Choose up to 20 validated images.');
@@ -15,7 +15,9 @@ export function imageReferences(images) {
   });
 }
 export async function uploadPropertyImage(file, { propertyId = null, createSessionId = null, signal, requestId = createPhotoSession() } = {}) {
-  if (!supported.includes(file?.type) || !file.size || file.size > 5242880) throw new Error('Choose a JPEG, PNG, GIF, WebP or AVIF image under 5 MB.');
+  const mimeType = getPropertyImageMime(file);
+  if (!mimeType) throw new Error('Choose a JPEG (JPG), PNG, GIF, WebP or AVIF image.');
+  if (!file.size || file.size > 5242880) throw new Error('Choose a non-empty image under 5 MB.');
   if ((!propertyId === !createSessionId) || (propertyId && !uuid.test(propertyId)) || (createSessionId && !uuid.test(createSessionId))) throw new Error('The listing upload session is unavailable. Reload the form.');
   const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
   const checksum = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2,'0')).join('');
@@ -29,10 +31,10 @@ export async function uploadPropertyImage(file, { propertyId = null, createSessi
     }
     return data;
   };
-  const reservation = await invoke({ action:'reserve', requestId, propertyId, createSessionId, mimeType:file.type, byteSize:file.size, checksum });
+  const reservation = await invoke({ action:'reserve', requestId, propertyId, createSessionId, mimeType, byteSize:file.size, checksum });
   const form = new FormData();
   for (const [key,value] of Object.entries(reservation.post.fields)) form.append(key,value);
-  form.append('file',file);
+  form.append('file', file.type === mimeType ? file : file.slice(0, file.size, mimeType), file.name);
   const result = await fetch(reservation.post.url, { method:'POST',body:form,signal,credentials:'omit' });
   if (!result.ok) throw new Error('The image could not be uploaded. Please select it again.');
   const final = await invoke({ action:'finalize', uploadId:reservation.uploadId });

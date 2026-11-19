@@ -26,11 +26,12 @@ test('New Project Plot replaces room inputs with length and width and retains di
   expect(getPropertyRoomStats({ propertyType: 'BUY', subcategory: 'NEW_PROJECT_PLOT', bedrooms: 3, bathrooms: 2 })).toEqual({ bedrooms: 0, bathrooms: 0 });
 });
 
-test('New Project Apartment retains room inputs', () => {
+test('New Project Apartment collects room details through unit configurations', () => {
   const form = { ...INITIAL_FORM_STATE, basicInfo: { propertyType: 'BUY', category: 'NEW_PROJECT', subcategory: 'NEW_PROJECT_APARTMENT' } };
   const html = renderToStaticMarkup(<PropertyDetailsStep formData={form} dispatch={() => {}} />);
-  expect(html).toContain('Bedrooms');
-  expect(html).toContain('Bathrooms');
+  expect(html).not.toContain('Basic Property Details');
+  expect(html).not.toContain('Bedrooms');
+  expect(html).not.toContain('Bathrooms');
   expect(html).not.toContain('Length (ft)');
 });
 

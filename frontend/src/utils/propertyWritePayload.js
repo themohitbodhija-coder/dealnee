@@ -2,6 +2,8 @@ import {
   calculateResalePlotPrice, ELECTRIFICATION, getPlotResaleInfo, isPlotAmenity, isPlotOutdoorFeature, isResidentialPlot,
 } from './plotDetails';
 
+import { apartmentSummary, apartmentUnits, isApartmentProject } from './projectUnits';
+
 const rules = {
   "resaleInfo": {
     "approval": "enum:BDA,BMC,NONE",
@@ -75,7 +77,7 @@ const rules = {
   "newProjectInfo": {
     "totalUnits": "count",
     "totalProjectArea": "decimal",
-    "totalProjectAreaUnit": "enum:sq_ft,sq_m,sq_yards",
+    "totalProjectAreaUnit": "enum:sq_ft,sq_m,sq_yards,acres",
     "plotLength": "decimal",
     "plotWidth": "decimal",
     "projectName": "text:200",
@@ -121,7 +123,7 @@ function details(source = {}, schema) {
   }));
 }
 export function propertyWritePayload(form, status = 'available') {
-  const basic=form.basicInfo||{}, common=form.propertyDetails||{}, rental=form.rentalInfo||{}, commercial=form.commercialDetails||{};
+  const basic=form.basicInfo||{}, common=isApartmentProject(basic.subcategory) ? {...form.propertyDetails,...apartmentSummary(form)} : form.propertyDetails||{}, rental=form.rentalInfo||{}, commercial=form.commercialDetails||{};
   const isRent=basic.propertyType==='RENT', isCommercial=basic.propertyType==='COMMERCIAL';
   const isNew=basic.subcategory?.startsWith('NEW_PROJECT_'), isResale=basic.subcategory?.startsWith('RESALE_');
   const location=form.location||{};
@@ -160,7 +162,7 @@ export function propertyWritePayload(form, status = 'available') {
   if(isCommercial) payload.commercialDetails=omit(details(commercial,rules.commercialDetails),['price','builtUpArea','propertyAge','furnishingType']);
   if(isNew) {
     payload.newProjectInfo=details(form.newProjectInfo,rules.newProjectInfo);
-    const pricing = plot ? { ...form.projectPricing, unitConfigurations: undefined } : form.projectPricing;
+    const pricing = plot ? { ...form.projectPricing, unitConfigurations: undefined } : isApartmentProject(basic.subcategory) ? { ...form.projectPricing, unitConfigurations: apartmentUnits(form.projectPricing?.unitConfigurations) } : form.projectPricing;
     payload.projectPricing=details(pricing,rules.projectPricing);
   }
   return payload;

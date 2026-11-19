@@ -4,6 +4,7 @@ import { processMultipleImages } from '../../../utils/propertyFormUtils';
 import { usesSupabase } from '../../../lib/backend';
 import { uploadPropertyImage } from '../../../services/photoService';
 import { getImageUrl } from '../../../utils/imageUrl';
+import { getPropertyImageMime, PROPERTY_IMAGE_ACCEPT } from '../../../utils/propertyImageType';
 import {
   createAddImageAction,
   createRemoveImageAction,
@@ -100,7 +101,7 @@ const ImagesStep = ({ formData, dispatch, errors = {}, propertyId, createSession
       e.preventDefault();
       e.stopPropagation();
       const files = Array.from(e.dataTransfer.files || []);
-      const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+      const imageFiles = files.filter((file) => getPropertyImageMime(file));
       if (imageFiles.length > 0) {
         const fileInputEvent = {
           target: { files: imageFiles },
@@ -187,7 +188,7 @@ const ImagesStep = ({ formData, dispatch, errors = {}, propertyId, createSession
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
+            accept={PROPERTY_IMAGE_ACCEPT}
             onChange={handleFileSelect}
             disabled={uploading}
             className="hidden"

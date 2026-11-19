@@ -71,7 +71,7 @@
   "newProjectInfo": {
     "totalUnits": "count",
     "totalProjectArea": "decimal",
-    "totalProjectAreaUnit": "enum:sq_ft,sq_m,sq_yards",
+    "totalProjectAreaUnit": "enum:sq_ft,sq_m,sq_yards,acres",
     "plotLength": "decimal",
     "plotWidth": "decimal",
     "projectName": "text:200",

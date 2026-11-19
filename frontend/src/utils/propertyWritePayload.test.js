@@ -5,7 +5,7 @@ const subtypes=['NEW_PROJECT_APARTMENT','NEW_PROJECT_VILLA','NEW_PROJECT_PLOT','
 const fixture=(subtype='RESALE_FLAT')=>initializePropertyFormState({...INITIAL_FORM_STATE,basicInfo:{...INITIAL_FORM_STATE.basicInfo,title:' Test title ',description:'Description',propertyType:subtype.startsWith('COMMERCIAL')?'COMMERCIAL':subtype.startsWith('RENTAL')?'RENT':'BUY',subcategory:subtype},propertyDetails:{...INITIAL_FORM_STATE.propertyDetails,price:'12345678901234.12',area:'1000.1234',bedrooms:0,bathrooms:0,featured:false},location:{address:'Street',city:'City',state:'State',latitude:0,longitude:0},resaleInfo:{floorNumber:0,readyToMove:false,pricePerSqft:subtype==='RESALE_PLOT'?'2500':''},commercialDetails:{...INITIAL_FORM_STATE.commercialDetails,price:'12345678901234.12',builtUpArea:'1000.1234',parkingAvailability:false,floorNumber:0},rentalInfo:{monthlyRent:'12345678901234.12',securityDeposit:'0',maintenanceCharges:'0'}});
 test.each(subtypes)('%s maps canonical classification and only applicable details',subtype=>{
   const payload=propertyWritePayload(fixture(subtype));
-  expect(payload.subcategory).toBe(subtype); expect(payload.price).toBe(subtype==='RESALE_PLOT'?'2500308.50':'12345678901234.12'); expect(payload.area).toBe('1000.1234');
+  expect(payload.subcategory).toBe(subtype); expect(payload.price).toBe(subtype==='NEW_PROJECT_APARTMENT'?null:subtype==='RESALE_PLOT'?'2500308.50':'12345678901234.12'); expect(payload.area).toBe(subtype==='NEW_PROJECT_APARTMENT'?null:'1000.1234');
   expect(Boolean(payload.commercialDetails)).toBe(subtype.startsWith('COMMERCIAL'));
   expect(Boolean(payload.rentalInfo)).toBe(subtype.startsWith('RENTAL'));
   expect(Boolean(payload.resaleInfo)).toBe(subtype.startsWith('RESALE'));

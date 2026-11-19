@@ -8,6 +8,7 @@ import {
  */
 
 import { FURNISHING_STATUS, PROPERTY_TYPES, getFurnishingItems } from '../constants/propertyConstants';
+import { apartmentSummary, apartmentUnits, isApartmentProject } from './projectUnits';
 import { INITIAL_FORM_STATE } from '../reducers/propertyFormReducer';
 
 // ==================== CONSTANTS ====================
@@ -612,6 +613,12 @@ export const transformFormDataForSubmission = (formData, userId) => {
           : null,
         unitConfigurations: projectPricing.unitConfigurations || {},
       };
+    }
+
+    if (isApartmentProject(basicInfo.subcategory)) {
+      const summary = apartmentSummary(formData);
+      Object.assign(submissionData, summary, { price: summary.price == null ? null : Number(summary.price), area: summary.area == null ? null : Number(summary.area) });
+      submissionData.projectPricing.unitConfigurations = apartmentUnits(projectPricing?.unitConfigurations);
     }
 
     if (plot) {

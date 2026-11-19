@@ -6,6 +6,7 @@ import {
   FACILITIES,
   FURNISHING_STATUS,
   AREA_UNITS,
+  LAND_AREA_UNITS,
   getDisplayLabel,
   isBuyProperty,
   isRentalProperty,
@@ -254,7 +255,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                 <select id="plot-area-unit" value={propertyDetails.areaUnit}
                   onChange={(event) => handleFieldChange('propertyDetails', 'areaUnit', event.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg">
-                  {AREA_UNITS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+                  {LAND_AREA_UNITS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
                 </select>
                 {errors.areaUnit && <p className="text-red-500 text-xs mt-1">{errors.areaUnit}</p>}
               </div>
@@ -271,7 +272,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
           </div>
         </div>
       )}
-      {shouldShowCommonFields && !isPlot && (
+      {shouldShowCommonFields && !isPlot && subcategory !== BUY_SUBCATEGORIES.NEW_PROJECT_APARTMENT && (
         <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-lg border border-purple-200 mb-6">
           <h3 className="text-lg font-semibold text-purple-900 mb-4">📋 Basic Property Details</h3>
 

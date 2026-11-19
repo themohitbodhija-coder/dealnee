@@ -4,6 +4,7 @@ import { propertyService } from '../../services/api';
 import { FaMapMarkerAlt, FaBed, FaBath, FaRuler, FaPhone, FaEnvelope, FaArrowLeft, FaCheckCircle, FaTag, FaInfo } from 'react-icons/fa';
 import InquiryForm from '../../components/user/InquiryForm';
 import ImageLightbox from '../../components/user/ImageLightbox';
+import { getUnitBhk, isApartmentProject } from '../../utils/projectUnits';
 import { getImageUrl } from '../../utils/imageUrl';
 import AmenityIcons from '../../components/icons/AmenityIcons';
 import { getDisplayLabel, FACILITIES } from '../../constants/propertyConstants';
@@ -355,8 +356,8 @@ const PropertyDetailsPage = () => {
                     )}
                     {Object.entries(projectPricing.unitConfigurations || {}).map(([code, unit], index) => (
                       <div key={code} className="border rounded-lg p-3">
-                        <h3 className="font-semibold mb-2">Unit {index + 1} · {code.match(/^bhk([1-5])/)?.[1]} BHK</h3>
-                        {[['landArea', 'Land Area'], ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['superBuildUpArea', 'Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price']].map(([field, label]) => unit[field] != null && unit[field] !== '' && (
+                        <h3 className="font-semibold mb-2">Unit {index + 1} · {getUnitBhk(code)} BHK</h3>
+                        {[...(!isApartmentProject(property.subcategory) ? [['landArea', 'Land Area']] : []), ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['superBuildUpArea', 'Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price']].map(([field, label]) => unit[field] != null && unit[field] !== '' && (
                           <p key={field} className="text-sm"><span className="text-gray-600">{label}: </span>{field === 'price' ? `₹${displayNumber(unit[field])}` : `${unit[field]}${field.includes('Area') ? ` ${property.areaUnit?.replace(/_/g, ' ') || ''}` : ''}`}</p>
                         ))}
                       </div>
