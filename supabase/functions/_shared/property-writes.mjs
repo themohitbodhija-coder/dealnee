@@ -12,7 +12,7 @@ const knownValidationErrors = {
   'Details do not match subtype': { propertyDetails: 'Review the details for the selected property subtype.' },
   'Invalid resale plot price': { 'propertyDetails.price': 'Enter a plot area and rate that match the total price.' },
   'Project names and at least one complete unit required': { 'projectPricing.unitConfigurations': 'Enter the project and builder names and complete at least one unit configuration.' },
-  'Incomplete unit or carpet area must be smaller': { 'projectPricing.unitConfigurations': 'Enter the price and both areas for each unit. Carpet area must be smaller than super built-up area.' },
+  'Incomplete unit or carpet area must be smaller': { 'projectPricing.unitConfigurations': 'Enter the price and both areas for each unit. Carpet area must be smaller than built-up area.' },
   'Invalid units': { 'projectPricing.unitConfigurations': 'Review the unit configurations.' },
   'Carpet area must be smaller than built-up area': { 'commercialDetails.carpetArea': 'Carpet area must be smaller than built-up area.' },
   'Floor exceeds total floors': { 'propertyDetails.floorNumber': 'The floor number cannot exceed the total floors.' },

@@ -4,6 +4,7 @@ import {
   BUY_SUBCATEGORIES,
   getProjectStatusOptions,
   getApprovalTypes,
+  AREA_UNITS,
 } from '../../../constants/propertyConstants';
 import {
   createFieldUpdateAction,
@@ -11,6 +12,7 @@ import {
 } from '../../../reducers/propertyFormReducer';
 
 const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
+  const [selectedBhk, setSelectedBhk] = useState('1');
   const [showErrorModal, setShowErrorModal] = useState(false);
   const { newProjectInfo, projectPricing } = formData;
   const isPlot = formData.basicInfo.subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_PLOT;
@@ -47,21 +49,18 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
   );
 
   // Auto-calculate Price Per Sq.Ft = Starting Price / Carpet Area
-  // Uses the first unit configuration (2 BHK, then 3 BHK, then 4 BHK) that
-  // has a carpet area entered.
+  // Uses the first configuration with a carpet area entered.
   useEffect(() => {
     if (isPlot) return;
     const startingPrice = parseFloat(projectPricing.startingPrice);
-    const { bhk2, bhk3, bhk4 } = projectPricing.unitConfigurations;
-    const referenceCarpetArea = [bhk2, bhk3, bhk4]
+    const referenceCarpetArea = Object.values(projectPricing.unitConfigurations || {})
       .map((unit) => parseFloat(unit?.carpetArea))
       .find((area) => !isNaN(area) && area > 0);
 
-    if (!isNaN(startingPrice) && startingPrice > 0 && referenceCarpetArea) {
-      const calculatedPricePerSqft = Math.round(startingPrice / referenceCarpetArea);
-      if (String(calculatedPricePerSqft) !== String(projectPricing.pricePerSqft)) {
-        dispatch(createFieldUpdateAction('projectPricing', 'pricePerSqft', calculatedPricePerSqft));
-      }
+    const calculatedPricePerSqft = !isNaN(startingPrice) && startingPrice > 0 && referenceCarpetArea
+      ? Math.round(startingPrice / referenceCarpetArea) : '';
+    if (String(calculatedPricePerSqft) !== String(projectPricing.pricePerSqft)) {
+      dispatch(createFieldUpdateAction('projectPricing', 'pricePerSqft', calculatedPricePerSqft));
     }
   }, [
     isPlot,
@@ -100,7 +99,7 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
                       <li key={`${field}.${subField}`} className="text-red-600 text-sm flex gap-2">
                         <span className="text-red-500 mt-1">•</span>
                         <span>
-                          <strong>{field} - {subField}:</strong> {subError}
+                          <strong>{field} - {subField}:</strong> {typeof subError === 'object' ? Object.values(subError).join('; ') : subError}
                         </span>
                       </li>
                     ));
@@ -136,6 +135,22 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
       <div className="bg-indigo-50 p-6 rounded-lg border border-indigo-200">
         <h3 className="text-lg font-semibold text-indigo-900 mb-4">Project Information</h3>
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {[['totalUnits', 'Total Units'], ['totalProjectArea', 'Total Project Area']].map(([field, label]) => (
+            <div key={field}>
+              <label htmlFor={field} className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
+              <input id={field} type="number" min="1" step={field === 'totalUnits' ? '1' : 'any'} value={newProjectInfo[field] ?? ''}
+                onChange={e => handleProjectFieldChange(field, e.target.value)} className="w-full px-4 py-3 border rounded-lg" />
+              {projectErrors[field] && <p className="text-red-500 text-xs mt-1">{projectErrors[field]}</p>}
+            </div>
+          ))}
+          <div>
+            <label htmlFor="totalProjectAreaUnit" className="block text-sm font-semibold text-gray-700 mb-2">Total Project Area Unit</label>
+            <select id="totalProjectAreaUnit" value={newProjectInfo.totalProjectAreaUnit || 'sq_ft'} onChange={e => handleProjectFieldChange('totalProjectAreaUnit', e.target.value)} className="w-full px-4 py-3 border rounded-lg">
+              {AREA_UNITS.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
+            </select>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -328,77 +343,48 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
       {!isPlot && <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
         <h3 className="text-lg font-semibold text-blue-900 mb-6">Unit Configurations</h3>
 
+        <div className="flex items-end gap-3 mb-6">
+          <div>
+            <label htmlFor="unit-bhk" className="block text-sm font-semibold mb-2">Select BHK</label>
+            <select id="unit-bhk" value={selectedBhk} onChange={e => setSelectedBhk(e.target.value)} className="px-4 py-3 border rounded-lg">
+              {[1, 2, 3, 4, 5].map(bhk => <option key={bhk} value={bhk}>{bhk} BHK</option>)}
+            </select>
+          </div>
+          <button type="button" className="px-4 py-3 bg-blue-600 text-white rounded-lg" onClick={() => {
+            const code = `bhk${selectedBhk}_${crypto.randomUUID().replace(/-/g, '')}`;
+            handlePricingFieldChange('unitConfigurations', { ...projectPricing.unitConfigurations,
+              [code]: { bedrooms: selectedBhk, bathrooms: '', landArea: '', superBuildUpArea: '', carpetArea: '', price: '' } });
+          }}>Add Unit</button>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">Add each configuration separately. You can add multiple units with the same BHK. Areas use the area unit selected in step 4.</p>
         <div className="space-y-6">
-          {['bhk2', 'bhk3', 'bhk4'].map(bhkType => {
-            const bhkLabel = bhkType === 'bhk2' ? '2 BHK' : bhkType === 'bhk3' ? '3 BHK' : '4 BHK';
-            const unit = projectPricing.unitConfigurations[bhkType];
-            const bhkError = unitErrors[bhkType] || {};
-
-            return (
-              <div key={bhkType} className="bg-white p-4 rounded-lg border border-gray-300">
-                <h4 className="font-semibold text-gray-800 mb-3">{bhkLabel}</h4>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Super Built-up Area
-                    </label>
-                    <input
-                      type="number"
-                      value={unit.superBuildUpArea}
-                      onChange={(e) => handleUnitConfigChange(bhkType, 'superBuildUpArea', e.target.value)}
-                      placeholder="0"
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        bhkError.superBuildUpArea ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {bhkError.superBuildUpArea && (
-                      <p className="text-red-500 text-xs mt-1">{bhkError.superBuildUpArea}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Carpet Area
-                    </label>
-                    <input
-                      type="number"
-                      value={unit.carpetArea}
-                      onChange={(e) => handleUnitConfigChange(bhkType, 'carpetArea', e.target.value)}
-                      placeholder="0"
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        bhkError.carpetArea ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {bhkError.carpetArea && (
-                      <p className="text-red-500 text-xs mt-1">{bhkError.carpetArea}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Price
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-3 text-gray-500">₹</span>
-                      <input
-                        type="number"
-                        value={unit.price}
-                        onChange={(e) => handleUnitConfigChange(bhkType, 'price', e.target.value)}
-                        placeholder="0"
-                        className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          bhkError.price ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                    </div>
-                    {bhkError.price && (
-                      <p className="text-red-500 text-xs mt-1">{bhkError.price}</p>
-                    )}
-                  </div>
-                </div>
+          {Object.entries(projectPricing.unitConfigurations || {}).filter(([, unit]) => unit && Object.values(unit).some(value => value !== '' && value != null)).map(([code, unit]) => (
+            <div key={code} className="bg-white p-4 rounded-lg border border-gray-300">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="font-semibold">{code.match(/^bhk([1-5])/)?.[1]} BHK</h4>
+                <button type="button" className="text-red-600" aria-label={`Remove ${code}`} onClick={() => {
+                  const remaining = { ...projectPricing.unitConfigurations };
+                  delete remaining[code];
+                  handlePricingFieldChange('unitConfigurations', remaining);
+                }}>Remove Unit</button>
               </div>
-            );
-          })}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  ['landArea', 'Land Area'], ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'],
+                  ['superBuildUpArea', 'Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price (₹)'],
+                ].map(([field, label]) => (
+                  <div key={field}>
+                    <label htmlFor={`${code}-${field}`} className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
+                    <input id={`${code}-${field}`} type="number" min="1" step={['bedrooms', 'bathrooms'].includes(field) ? '1' : 'any'}
+                      value={unit[field] ?? (field === 'bedrooms' ? code.match(/^bhk([1-5])/)?.[1] : '')}
+                      onChange={e => handleUnitConfigChange(code, field, e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg ${unitErrors[code]?.[field] ? 'border-red-500' : 'border-gray-300'}`} />
+                    {unitErrors[code]?.[field] && <p className="text-red-500 text-xs mt-1">{unitErrors[code][field]}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>}
     </div>

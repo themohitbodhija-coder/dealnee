@@ -180,7 +180,7 @@ const ReviewStep = ({ formData, onEdit }) => {
         {expandedSections.propertyDetails && (
           <div className="p-4 space-y-3">
             <DetailRow
-              label={isPlot ? 'Plot Area' : 'Super Built-up Area'}
+              label={isPlot ? 'Plot Area' : 'Built-up Area'}
               value={formatArea(commercialBuy ? formData.commercialDetails.builtUpArea : propertyDetails.area, isResalePlot ? 'sq_ft' : propertyDetails.areaUnit)}
               editSection="details"
             />
@@ -249,7 +249,7 @@ const ReviewStep = ({ formData, onEdit }) => {
                   editSection="details"
                 />
                 <DetailRow
-                  label="Super Built-up Area"
+                  label="Built-up Area"
                   value={formatArea(commercialBuy ? formData.commercialDetails.builtUpArea : formData.propertyDetails.builtUpArea, formData.propertyDetails.areaUnit)}
                   editSection="details"
                 />
@@ -311,6 +311,22 @@ const ReviewStep = ({ formData, onEdit }) => {
           </div>
         )}
       </div>
+
+      {basicInfo.subcategory?.startsWith('NEW_PROJECT_') && (
+        <div className="bg-white border rounded-lg p-4 space-y-3">
+          <h3 className="text-lg font-semibold">Project Information &amp; Units</h3>
+          <DetailRow label="Total Units" value={newProjectInfo?.totalUnits} editSection="project_details" />
+          <DetailRow label="Total Project Area" value={formatArea(newProjectInfo?.totalProjectArea, newProjectInfo?.totalProjectAreaUnit)} editSection="project_details" />
+          {Object.entries(formData.projectPricing?.unitConfigurations || {}).filter(([, unit]) => unit && Object.values(unit).some(value => value !== '' && value != null)).map(([code, unit], index) => (
+              <div key={code} className="border rounded-lg p-3 space-y-2">
+                <h4 className="font-semibold">Unit {index + 1} · {code.match(/^bhk([1-5])/)?.[1]} BHK</h4>
+                {[['landArea', 'Land Area'], ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['superBuildUpArea', 'Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price']].map(([field, label]) => (
+                  <DetailRow key={field} label={label} value={field === 'price' ? formatPrice(unit[field]) : field.includes('Area') ? formatArea(unit[field], propertyDetails.areaUnit) : unit[field] ?? (field === 'bedrooms' ? code.match(/^bhk([1-5])/)?.[1] : '')} editSection="project_details" />
+                ))}
+              </div>
+            ))}
+        </div>
+      )}
 
       {/* Images Section */}
       <div className="border rounded-lg overflow-hidden">

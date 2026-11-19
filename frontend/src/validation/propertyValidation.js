@@ -207,7 +207,7 @@ export const validatePropertyDetails = (data, propertyType, subcategory = '') =>
   }
 
   if (!validateArea(data.area)) {
-    errors.area = 'Please enter a valid super built-up area';
+    errors.area = 'Please enter a valid built-up area';
   }
 
   if (!data.areaUnit) {
@@ -341,7 +341,7 @@ export const validateCompleteForm = (formData) => {
 
   if (propertyType === PROPERTY_TYPES.COMMERCIAL) {
     if (!validateArea(formData.commercialDetails?.builtUpArea)) {
-      allErrors.commercialDetails = { ...allErrors.commercialDetails, builtUpArea: 'Please enter a valid super built-up area' };
+      allErrors.commercialDetails = { ...allErrors.commercialDetails, builtUpArea: 'Please enter a valid built-up area' };
     }
     const carpetArea = formData.commercialDetails?.carpetArea;
     if (carpetArea != null && carpetArea !== '' && !validateArea(carpetArea)) {
@@ -539,6 +539,9 @@ export const getSectionErrors = (section, allErrors) => {
 export const validateNewProjectInfo = (data) => {
   const errors = {};
 
+  if (data.totalUnits !== '' && data.totalUnits != null && (!Number.isInteger(Number(data.totalUnits)) || Number(data.totalUnits) < 1 || Number(data.totalUnits) > 1000000000)) errors.totalUnits = 'Enter a positive whole number up to 1,000,000,000';
+  if (data.totalProjectArea !== '' && data.totalProjectArea != null && !validateArea(data.totalProjectArea)) errors.totalProjectArea = 'Enter a valid total project area';
+
   // Make all project details optional to allow progression
   if (data.projectName && data.projectName.trim().length < 3 && data.projectName.trim().length > 0) {
     errors.projectName = 'Project name must be at least 3 characters';
@@ -582,70 +585,22 @@ export const validateProjectPricing = (data, isPlot = false) => {
 };
 
 // ==================== UNIT CONFIGURATION VALIDATION ====================
-export const validateUnitConfiguration = (units) => {
+export const validateUnitConfiguration = (units = {}) => {
   const errors = {};
-
-  ['bhk2', 'bhk3', 'bhk4'].forEach(bhk => {
-    if (!units[bhk]) return;
-
-    const bhkErrors = {};
-    const unit = units[bhk];
-
-    // Check if ANY field has meaningful data (non-empty string)
-    const hasBuiltUpArea = unit.superBuildUpArea && unit.superBuildUpArea.toString().trim() !== '';
-    const hasCarpetArea = unit.carpetArea && unit.carpetArea.toString().trim() !== '';
-    const hasPrice = unit.price && unit.price.toString().trim() !== '';
-    const hasAnyData = hasBuiltUpArea || hasCarpetArea || hasPrice;
-    
-    // Debug logging
-    console.log(`[Unit Config - ${bhk}]`, {
-      superBuildUpArea: unit.superBuildUpArea,
-      carpetArea: unit.carpetArea,
-      price: unit.price,
-      hasBuiltUpArea,
-      hasCarpetArea,
-      hasPrice,
-      hasAnyData
+  Object.entries(units || {}).forEach(([code, unit]) => {
+    if (!unit || !Object.values(unit).some(value => value !== '' && value != null)) return;
+    const issues = {};
+    if (!/^bhk[1-5](?:_[a-zA-Z0-9]+)?$/.test(code)) issues.bhk = 'Select 1–5 BHK';
+    if (!validateArea(unit.superBuildUpArea)) issues.superBuildUpArea = 'Enter a valid built-up area';
+    if (!validateArea(unit.carpetArea)) issues.carpetArea = 'Enter a valid carpet area';
+    if (!validatePrice(unit.price)) issues.price = 'Enter a valid price';
+    if (Number(unit.carpetArea) >= Number(unit.superBuildUpArea)) issues.carpetArea = 'Carpet area must be less than built-up area';
+    if (unit.landArea !== '' && unit.landArea != null && !validateArea(unit.landArea)) issues.landArea = 'Enter a valid land area';
+    ['bedrooms', 'bathrooms'].forEach(field => {
+      if (unit[field] !== '' && unit[field] != null && (!Number.isInteger(Number(unit[field])) || Number(unit[field]) < 1 || Number(unit[field]) > 100)) issues[field] = 'Enter a whole number from 1 to 100';
     });
-    
-    // Unit configurations are optional - only validate if data is present
-    if (hasAnyData) {
-      // If any field is filled, validate all fields for completeness
-      if (!hasBuiltUpArea || !validateArea(unit.superBuildUpArea)) {
-        bhkErrors.superBuildUpArea = 'Super built-up area is required';
-        console.log(`  ❌ ${bhk} - superBuildUpArea invalid:`, unit.superBuildUpArea);
-      }
-
-      if (!hasCarpetArea || !validateArea(unit.carpetArea)) {
-        bhkErrors.carpetArea = 'Carpet area is required';
-        console.log(`  ❌ ${bhk} - carpetArea invalid:`, unit.carpetArea);
-      }
-
-      if (!hasPrice || !validatePrice(unit.price)) {
-        bhkErrors.price = 'Price is required';
-        console.log(`  ❌ ${bhk} - price invalid:`, unit.price);
-      }
-
-      // Carpet area should be less than super built-up area
-      if (hasCarpetArea && hasBuiltUpArea) {
-        const carpetNum = Number(unit.carpetArea);
-        const builtUpNum = Number(unit.superBuildUpArea);
-        if (carpetNum >= builtUpNum) {
-          bhkErrors.carpetArea = 'Carpet area must be less than super built-up area';
-          console.log(`  ❌ ${bhk} - carpet (${carpetNum}) >= builtUp (${builtUpNum})`);
-        }
-      }
-    }
-
-    if (Object.keys(bhkErrors).length > 0) {
-      errors[bhk] = bhkErrors;
-    }
+    if (Object.keys(issues).length) errors[code] = issues;
   });
-
-  if (Object.keys(errors).length > 0) {
-    console.log('[UNIT CONFIG ERRORS]', errors);
-  }
-
   return errors;
 };
 

@@ -215,6 +215,9 @@ const propertySchema = new mongoose.Schema(
     newProjectInfo: {
       plotLength: { type: Number, min: 0 },
       plotWidth: { type: Number, min: 0 },
+      totalUnits: { type: Number, min: 1 },
+      totalProjectArea: { type: Number, min: 0 },
+      totalProjectAreaUnit: String,
       projectName: String,
       builderName: String,
       projectType: String,
@@ -230,24 +233,15 @@ const propertySchema = new mongoose.Schema(
       priceRange: String,
       pricePerSqft: Number,
       unitConfigurations: {
-        bhk2: {
+        type: Map,
+        of: new mongoose.Schema({
           superBuildUpArea: Number,
           carpetArea: Number,
           landArea: Number,
+          bedrooms: Number,
+          bathrooms: Number,
           price: Number,
-        },
-        bhk3: {
-          superBuildUpArea: Number,
-          carpetArea: Number,
-          landArea: Number,
-          price: Number,
-        },
-        bhk4: {
-          superBuildUpArea: Number,
-          carpetArea: Number,
-          landArea: Number,
-          price: Number,
-        },
+        }, { _id: false }),
       },
     },
 

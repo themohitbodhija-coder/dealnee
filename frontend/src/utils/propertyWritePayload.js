@@ -73,6 +73,9 @@ const rules = {
     "parkingSpaceAround": "text:500"
   },
   "newProjectInfo": {
+    "totalUnits": "count",
+    "totalProjectArea": "decimal",
+    "totalProjectAreaUnit": "enum:sq_ft,sq_m,sq_yards",
     "plotLength": "decimal",
     "plotWidth": "decimal",
     "projectName": "text:200",
@@ -111,8 +114,8 @@ function details(source = {}, schema) {
   return Object.fromEntries(Object.entries(schema).filter(([key]) => present(source[key])).map(([key,rule]) => {
     let value=source[key];
     if(rule==='units') {
-      value=Object.fromEntries(Object.entries(value).filter(([,unit])=>Object.values(unit).some(present)).map(([code,unit])=>[code,details(unit,{superBuildUpArea:'decimal',carpetArea:'decimal',landArea:'decimal',price:'money'})]));
-    } else if(['money','money0','decimal','integer','rooms','age'].includes(rule)) value=decimal(value);
+      value=Object.fromEntries(Object.entries(value).filter(([,unit])=>Object.values(unit || {}).some(present)).map(([code,unit])=>[code,details(unit,{bedrooms:'rooms',bathrooms:'rooms',superBuildUpArea:'decimal',carpetArea:'decimal',landArea:'decimal',price:'money'})]));
+    } else if(['money','money0','decimal','integer','rooms','age','count'].includes(rule)) value=decimal(value);
     else if(typeof value==='string') value=value.trim();
     return [key,value];
   }));

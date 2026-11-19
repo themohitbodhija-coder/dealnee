@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FaInfo, FaTimes } from 'react-icons/fa';
 import {
   AMENITIES,
+  BUY_SUBCATEGORIES,
   FACILITIES,
   FURNISHING_STATUS,
   AREA_UNITS,
@@ -298,7 +299,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
 
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Super Built-up Area
+              Built-up Area
             </label>
             <input
               type="number"
@@ -312,9 +313,17 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
             {errors.area && <p className="text-red-500 text-xs mt-1">{errors.area}</p>}
           </div>
 
+          {(isResaleVilla(subcategory) || subcategory === BUY_SUBCATEGORIES.NEW_PROJECT_VILLA) && (
+            <div className="mb-4">
+              <label htmlFor="property-plot-area" className="block text-sm font-semibold text-gray-700 mb-2">Plot Area</label>
+              <input id="property-plot-area" type="number" min="1" step="any" value={propertyDetails.plotArea ?? ''}
+                onChange={e => handleFieldChange('propertyDetails', 'plotArea', e.target.value)} className="w-full px-4 py-3 border rounded-lg" />
+              {errors.plotArea && <p className="text-red-500 text-xs mt-1">{errors.plotArea}</p>}
+            </div>
+          )}
           {/* Area Unit */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Super Built-up Area Unit</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Built-up Area Unit</label>
             <select
               value={propertyDetails.areaUnit}
               onChange={(e) => handleFieldChange('propertyDetails', 'areaUnit', e.target.value)}
@@ -621,7 +630,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
           {isCommercialBuy && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               {[
-                ['builtUpArea', 'Super Built-up Area'],
+                ['builtUpArea', 'Built-up Area'],
                 ['carpetArea', 'Carpet Area'],
               ].map(([field, label]) => (
                 <div key={field}>
@@ -632,7 +641,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                 </div>
               ))}
               <div>
-                <label htmlFor="commercial-area-unit" className="block text-sm font-semibold text-gray-700 mb-2">Super Built-up Area Unit</label>
+                <label htmlFor="commercial-area-unit" className="block text-sm font-semibold text-gray-700 mb-2">Built-up Area Unit</label>
                 <select id="commercial-area-unit" value={propertyDetails.areaUnit || 'sq_ft'}
                   onChange={(e) => handleFieldChange('propertyDetails', 'areaUnit', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
@@ -707,33 +716,6 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                 </label>
               ))}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Resale Villa - Plot & Built-up Area */}
-      {isResaleVilla(subcategory) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Plot Area</label>
-            <input
-              type="number"
-              value={propertyDetails.plotArea}
-              onChange={(e) => handleFieldChange('propertyDetails', 'plotArea', e.target.value)}
-              placeholder="0"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Super Built-up Area</label>
-            <input
-              type="number"
-              value={propertyDetails.builtUpAreaVilla}
-              onChange={(e) => handleFieldChange('propertyDetails', 'builtUpAreaVilla', e.target.value)}
-              placeholder="0"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
           </div>
         </div>
       )}

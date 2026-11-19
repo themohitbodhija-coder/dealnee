@@ -225,7 +225,7 @@ const PropertyDetailsPage = () => {
                   <div className="text-center">
                     <FaRuler className="text-3xl text-red-600 mx-auto mb-2" />
                     <p className="text-gray-600">
-                      {isPlot ? `Plot Area: ${plotArea} ${areaUnit}` : `Super Built-up Area: ${property.area} ${property.areaUnit}`}
+                      {isPlot ? `Plot Area: ${plotArea} ${areaUnit}` : `Built-up Area: ${property.area} ${property.areaUnit}`}
                     </p>
                   </div>
                 )}
@@ -315,6 +315,8 @@ const PropertyDetailsPage = () => {
                         ))}
                       </>
                     )}
+                    {projectInfo.totalUnits && <div><p className="text-gray-600 text-sm">Total Units</p><p className="font-semibold">{projectInfo.totalUnits}</p></div>}
+                    {projectInfo.totalProjectArea && <div><p className="text-gray-600 text-sm">Total Project Area</p><p className="font-semibold">{projectInfo.totalProjectArea} {projectInfo.totalProjectAreaUnit?.replace(/_/g, ' ')}</p></div>}
                     {projectInfo.projectName && (
                       <div>
                         <p className="text-gray-600 text-sm">Project Name</p>
@@ -351,6 +353,14 @@ const PropertyDetailsPage = () => {
                         <p className="text-gray-800 font-semibold">{new Date(projectInfo.possessionDate).toLocaleDateString()}</p>
                       </div>
                     )}
+                    {Object.entries(projectPricing.unitConfigurations || {}).map(([code, unit], index) => (
+                      <div key={code} className="border rounded-lg p-3">
+                        <h3 className="font-semibold mb-2">Unit {index + 1} · {code.match(/^bhk([1-5])/)?.[1]} BHK</h3>
+                        {[['landArea', 'Land Area'], ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['superBuildUpArea', 'Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price']].map(([field, label]) => unit[field] != null && unit[field] !== '' && (
+                          <p key={field} className="text-sm"><span className="text-gray-600">{label}: </span>{field === 'price' ? `₹${displayNumber(unit[field])}` : `${unit[field]}${field.includes('Area') ? ` ${property.areaUnit?.replace(/_/g, ' ') || ''}` : ''}`}</p>
+                        ))}
+                      </div>
+                    ))}
                     {projectPricing.startingPrice && (
                       <div>
                         <p className="text-gray-600 text-sm">Starting Price</p>
@@ -486,7 +496,7 @@ const PropertyDetailsPage = () => {
                         <div><p className="text-gray-600 text-sm">Property Subtype</p><p className="text-gray-800 font-semibold">{getDisplayLabel(property.subcategory)}</p></div>
                         {['builtUpArea', 'carpetArea'].map((field) => property.commercialDetails[field] != null && (
                           <div key={field}>
-                            <p className="text-gray-600 text-sm">{field === 'builtUpArea' ? 'Super Built-up Area' : 'Carpet Area'}</p>
+                            <p className="text-gray-600 text-sm">{field === 'builtUpArea' ? 'Built-up Area' : 'Carpet Area'}</p>
                             <p className="text-gray-800 font-semibold">{property.commercialDetails[field]} {property.areaUnit || 'sq_ft'}</p>
                           </div>
                         ))}

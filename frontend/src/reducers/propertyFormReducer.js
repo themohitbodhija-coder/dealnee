@@ -37,6 +37,9 @@ export const INITIAL_FORM_STATE = {
   newProjectInfo: {
     plotLength: '',
     plotWidth: '',
+    totalUnits: '',
+    totalProjectArea: '',
+    totalProjectAreaUnit: 'sq_ft',
     projectName: '',
     builderName: '',
     projectType: '', // Apartment, Villa

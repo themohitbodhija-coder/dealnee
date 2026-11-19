@@ -53,7 +53,7 @@ test('Express plot create, update and read retain each road width and calculate 
   });
   assert.equal(project.code, 201);
   assert.equal(project.data.property.areaUnit, 'sq_yards');
-  assert.equal(project.data.property.projectPricing.unitConfigurations.bhk2.price, undefined);
+  assert.deepEqual(project.data.property.toJSON().projectPricing.unitConfigurations, {});
   assert.equal((await send(getPropertyById, {}, String(project.data.property._id))).data.property.location.roadWidth, 42);
   assert.equal((await send(getPropertyById, {}, resaleId)).data.property.location.roadWidth, 26.5);
   assert.equal((await send(updateProperty, { area: -1 }, String(project.data.property._id))).code, 400);
