@@ -1,5 +1,6 @@
 import { getSupabase } from '../lib/supabase';
 import { getPropertyImageMime } from '../utils/propertyImageType';
+import { MAX_IMAGE_BYTES, preparePropertyImage } from '../utils/preparePropertyImage';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const createPhotoSession = () => crypto.randomUUID();
@@ -17,8 +18,9 @@ export function imageReferences(images) {
 export async function uploadPropertyImage(file, { propertyId = null, createSessionId = null, signal, requestId = createPhotoSession() } = {}) {
   const mimeType = getPropertyImageMime(file);
   if (!mimeType) throw new Error('Choose a JPEG (JPG), PNG, GIF, WebP or AVIF image.');
-  if (!file.size || file.size > 5242880) throw new Error('Choose a non-empty image under 5 MB.');
+  if (!file.size || file.size > MAX_IMAGE_BYTES) throw new Error('Choose a non-empty image up to 20 MB.');
   if ((!propertyId === !createSessionId) || (propertyId && !uuid.test(propertyId)) || (createSessionId && !uuid.test(createSessionId))) throw new Error('The listing upload session is unavailable. Reload the form.');
+  file = await preparePropertyImage(file, mimeType);
   const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
   const checksum = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2,'0')).join('');
   const invoke = async body => {

@@ -13,7 +13,8 @@ function fixture({rpc,decode,storage,user,account}={}){
 test('photo input rejects forged key, invalid scope, unsupported and oversized files',()=>{
  const valid={action:'reserve',requestId:uploadId,createSessionId:session,mimeType:'image/png',byteSize:100,checksum:'a'.repeat(64)};
  assert.equal(validatePhotoInput(valid),valid);
- for(const patch of [{objectKey:'properties/a.jpg'},{propertyId:actor},{mimeType:'image/svg+xml'},{byteSize:5242881},{checksum:'bad'}])assert.throws(()=>validatePhotoInput({...valid,...patch}));
+ for(const byteSize of [5242881,8214704,20971520]) assert.equal(validatePhotoInput({...valid,byteSize}).byteSize,byteSize);
+ for(const patch of [{objectKey:'properties/a.jpg'},{propertyId:actor},{mimeType:'image/svg+xml'},{byteSize:20971521},{checksum:'bad'}])assert.throws(()=>validatePhotoInput({...valid,...patch}));
 });
 test('unauthenticated, revoked and disallowed origins never call elevated SQL',async()=>{
  for(const opts of [{user:false},{account:false}]){const f=fixture(opts);assert.ok([401,403].includes((await f.handler(json({action:'finalize',uploadId}))).status));assert.equal(f.calls.length,0);}

@@ -161,7 +161,7 @@ const ImagesStep = ({ formData, dispatch, errors = {}, propertyId, createSession
       <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-lg">
         <FaImage className="text-blue-600" />
         <p className="text-blue-800 text-sm">
-          Upload property images (up to 20 images, max 5MB each)
+          Upload property images (up to 20 images, max 20MB each; large JPGs are automatically resized)
         </p>
       </div>
 

@@ -42,5 +42,5 @@ test('oversized multipart image returns 413 instead of a server error', () => {
   let status, body;
   errorHandler({ name: 'MulterError', code: 'LIMIT_FILE_SIZE' }, {}, { status(value) { status = value; return this; }, json(value) { body = value; } }, () => {});
   assert.equal(status, 413);
-  assert.equal(body.message, 'Image exceeds the 5MB limit');
+  assert.equal(body.message, 'Image exceeds the 20MB limit');
 });

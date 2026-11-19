@@ -3,7 +3,7 @@ const errorHandler = (err, req, res, next) => {
 
   if (err.name === 'MulterError') {
     return res.status(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({
-      message: err.code === 'LIMIT_FILE_SIZE' ? 'Image exceeds the 5MB limit' : 'Invalid image upload',
+      message: err.code === 'LIMIT_FILE_SIZE' ? 'Image exceeds the 20MB limit' : 'Invalid image upload',
     });
   }
 

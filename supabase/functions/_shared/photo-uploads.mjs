@@ -1,5 +1,5 @@
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export const MAX_IMAGE_BYTES = 5242880;
+export const MAX_IMAGE_BYTES = 20971520;
 export const PHOTO_MIMES = ['image/png','image/jpeg','image/gif','image/webp','image/avif'];
 export class PhotoError extends Error {
   constructor(status, message, code='photo_error') { super(message); this.status=status; this.code=code; }
@@ -21,7 +21,7 @@ export function validatePhotoInput(input) {
   } else if (!uuid.test(input.requestId||'') || !PHOTO_MIMES.includes(input.mimeType) || !Number.isInteger(input.byteSize)
     || input.byteSize<1 || input.byteSize>MAX_IMAGE_BYTES || !/^[a-f0-9]{64}$/.test(input.checksum||'')
     || (!!input.propertyId === !!input.createSessionId) || (input.propertyId && !uuid.test(input.propertyId)) || (input.createSessionId && !uuid.test(input.createSessionId))) {
-    throw new PhotoError(400,'Choose a supported image under 5 MB and a valid listing session.');
+    throw new PhotoError(400,'Choose a supported image up to 20 MB and a valid listing session.');
   }
   return input;
 }

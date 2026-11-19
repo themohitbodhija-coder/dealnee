@@ -1,5 +1,18 @@
 # Photo upload implementation and operations
 
+Property images accept up to 20 MiB (20,971,520 bytes) per source file. Migration
+`20261119001500_photo_limit_20mb.sql` updates reservation/finalization RPCs and
+the upload/image table constraints. Deploy the `photo-uploads` function with the
+matching limit before deploying the frontend. S3 POST policies remain bound to
+the exact reserved size and checksum.
+
+Before hashing and reserving, the frontend resizes JPGs larger than 2560 pixels
+on their longest side, preserving aspect ratio and applying browser EXIF
+orientation. The resized bytes are the bytes signed, uploaded, and validated.
+This keeps large architectural renders within the existing server decoder memory
+budget. Other image formats retain their original bytes and existing decoding
+and frame limits. Images remain subject to the dimension and pixel limits.
+
 ## Local completion and boundaries
 
 Implemented reservation/signing, bounded object read, checksum/MIME/magic validation, real raster decoding and re-encoding, metadata stripping, immutable final publication, transactional ordered attachment, durable removal/expiry outbox, leased cleanup and retry, scheduler authentication, and React selection/upload/error state. See `PHOTO_UPLOAD_CONTRACT.md` for the property integration boundary. Property save/delete RPCs call the photo helper and existing cascade deletion triggers.
