@@ -111,7 +111,7 @@ const PropertyDetailsPage = () => {
   const furnishingItemLabels = getFurnishingItemDisplayLabels(furnishingItemValues);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 [overflow-wrap:anywhere]">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Back Button */}
         <button
@@ -121,12 +121,12 @@ const PropertyDetailsPage = () => {
           <FaArrowLeft /> <span>Back</span>
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Image Gallery */}
-          <div className="lg:col-span-2">
+          <div className="min-w-0 lg:col-span-2">
             <div className="bg-white rounded-lg shadow-lg overflow-hidden">
               <div
-                className="relative h-96 bg-gray-200 cursor-pointer group"
+                className="relative h-64 sm:h-96 bg-gray-200 cursor-pointer group"
                 onClick={() => openLightbox(currentImageIndex)}
               >
                 <img
@@ -187,8 +187,8 @@ const PropertyDetailsPage = () => {
             </div>
 
             {/* Property Details */}
-            <div className="bg-white rounded-lg shadow-lg p-8 mt-8">
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">{property.title}</h1>
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-8 mt-6 sm:mt-8">
+              <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-2">{property.title}</h1>
 
               {/* Property ID */}
               {property.propertyId && (
@@ -206,7 +206,7 @@ const PropertyDetailsPage = () => {
               </div>
 
               {/* Price */}
-              <div className="text-4xl font-bold text-red-600 mb-6">₹{isPlot ? Number(property.price).toLocaleString('en-IN') : displayNumber(property.price)}</div>
+              <div className="text-2xl sm:text-4xl font-bold text-red-600 mb-6">₹{isPlot ? Number(property.price).toLocaleString('en-IN') : displayNumber(property.price)}</div>
 
               {/* Features */}
               <div className="grid grid-cols-3 gap-4 mb-8 pb-8 border-b">
@@ -234,11 +234,11 @@ const PropertyDetailsPage = () => {
 
               {/* Rental Information - MOVED TO TOP */}
               {showRentalDetails && (
-                <div className="bg-gray-50 rounded-lg p-6 mb-8">
+                <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                     <FaTag className="text-red-600 mr-2" /> Rental Details
                   </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                     {rentalInfo.monthlyRent && (
                       <div>
                         <p className="text-gray-600 text-sm">Monthly Rent</p>
@@ -301,11 +301,11 @@ const PropertyDetailsPage = () => {
 
               {/* New Project Information */}
               {showProjectDetails && (
-                <div className="bg-indigo-50 rounded-lg p-6 mb-8 border border-indigo-200">
+                <div className="bg-indigo-50 rounded-lg p-4 sm:p-6 mb-8 border border-indigo-200">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                     <FaInfo className="text-indigo-600 mr-2" /> Project Details
                   </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                     {property.propertyType === 'BUY' && property.subcategory === 'NEW_PROJECT_PLOT' && (
                       <>
                         {PLOT_DIMENSIONS.map(([field, label]) => isPositivePlotNumber(projectInfo[field]) && (
@@ -355,7 +355,7 @@ const PropertyDetailsPage = () => {
                       </div>
                     )}
                     {Object.entries(projectPricing.unitConfigurations || {}).map(([code, unit], index) => (
-                      <div key={code} className="border rounded-lg p-3">
+                      <div key={code} className="min-w-0 sm:col-span-2 md:col-span-1 border rounded-lg p-3">
                         <h3 className="font-semibold mb-2">Unit {index + 1} · {getUnitBhk(code)} BHK</h3>
                         {[...(!isApartmentProject(property.subcategory) ? [['landArea', 'Land Area']] : []), ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['superBuildUpArea', 'Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price']].map(([field, label]) => unit[field] != null && unit[field] !== '' && (
                           <p key={field} className="text-sm"><span className="text-gray-600">{label}: </span>{field === 'price' ? `₹${displayNumber(unit[field])}` : `${unit[field]}${field.includes('Area') ? ` ${property.areaUnit?.replace(/_/g, ' ') || ''}` : ''}`}</p>
@@ -386,11 +386,11 @@ const PropertyDetailsPage = () => {
 
               {/* Resale Information */}
               {showResaleDetails && (
-                <div className="bg-gray-50 rounded-lg p-6 mb-8">
+                <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                     <FaTag className="text-red-600 mr-2" /> Resale Details
                   </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                     {resaleInfo.approval && (
                       <div>
                         <p className="text-gray-600 text-sm">Approval</p>
@@ -487,11 +487,11 @@ const PropertyDetailsPage = () => {
 
               {/* Commercial Information - MOVED TO TOP */}
               {property.commercialDetails && property.propertyType === 'COMMERCIAL' && (
-                <div className="bg-gray-50 rounded-lg p-6 mb-8">
+                <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                     <FaTag className="text-red-600 mr-2" /> Commercial Details
                   </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                     {property.propertyType === 'COMMERCIAL' && (
                       <>
                         <div><p className="text-gray-600 text-sm">Property Subtype</p><p className="text-gray-800 font-semibold">{getDisplayLabel(property.subcategory)}</p></div>
@@ -565,9 +565,9 @@ const PropertyDetailsPage = () => {
               )}
 
               {/* Property Metadata - MOVED TO TOP */}
-              <div className="bg-blue-50 rounded-lg p-6 mb-8">
+              <div className="bg-blue-50 rounded-lg p-4 sm:p-6 mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Property Information</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                   <div>
                     <p className="text-gray-600 text-sm">Property Type</p>
                     <p className="text-gray-800 font-semibold">{property.propertyType}</p>
@@ -607,7 +607,7 @@ const PropertyDetailsPage = () => {
                   <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
                     <FaCheckCircle className="text-red-600 mr-2" /> Amenities
                   </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {amenities.map((amenity, idx) => (
                       <div key={idx} className="flex items-center space-x-2 text-gray-700">
                         {/* amenity may be id or label; try to render icon by id first */}
@@ -627,7 +627,7 @@ const PropertyDetailsPage = () => {
                   <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
                     <FaInfo className="text-red-600 mr-2" /> Facilities
                   </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {hasRoadWidth && (
                       <div className="flex items-center space-x-2 text-gray-700">
                         <FaRuler className="text-red-600 w-5 h-5 flex-shrink-0" />
@@ -651,7 +651,7 @@ const PropertyDetailsPage = () => {
               {!isPlot && furnishingItemLabels.length > 0 && (
                 <div className="mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4">Furnishing Items</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {furnishingItemLabels.map((item, idx) => (
                       <div key={`${item}-${idx}`} className="flex items-center space-x-2 text-gray-700">
                         <span className="text-blue-600">✓</span>
@@ -666,7 +666,7 @@ const PropertyDetailsPage = () => {
               {outdoorFeatures.length > 0 && (
                 <div className="mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4">Outdoor Features</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {outdoorFeatures.map((feature, idx) => (
                       <div key={idx} className="flex items-center space-x-2 text-gray-700">
                         <span className="text-purple-600">★</span>
@@ -680,7 +680,7 @@ const PropertyDetailsPage = () => {
           </div>
 
           {/* Sidebar */}
-          <div>
+          <div className="min-w-0">
             {/* Contact Card */}
             <div className="bg-white rounded-lg shadow-lg p-6 sticky top-8">
               <h3 className="text-xl font-bold text-gray-800 mb-6">Contact Agent</h3>
