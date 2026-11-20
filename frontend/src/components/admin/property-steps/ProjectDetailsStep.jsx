@@ -383,7 +383,7 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   ...(!isApartment ? [['landArea', 'Land Area']] : []), ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'],
-                  ['superBuildUpArea', 'Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price (₹)'],
+                  ['superBuildUpArea', 'Super Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price (₹)'],
                 ].map(([field, label]) => (
                   <div key={field}>
                     <label htmlFor={`${code}-${field}`} className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>

@@ -323,7 +323,7 @@ const ReviewStep = ({ formData, onEdit }) => {
           {Object.entries(formData.projectPricing?.unitConfigurations || {}).filter(([, unit]) => unit && Object.values(unit).some(value => value !== '' && value != null)).map(([code, unit], index) => (
               <div key={code} className="border rounded-lg p-3 space-y-2">
                 <h4 className="font-semibold">Unit {index + 1} · {getUnitBhk(code)} BHK</h4>
-                {[...(!isApartment ? [['landArea', 'Land Area']] : []), ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['superBuildUpArea', 'Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price']].map(([field, label]) => (
+                {[...(!isApartment ? [['landArea', 'Land Area']] : []), ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['superBuildUpArea', 'Super Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price']].map(([field, label]) => (
                   <DetailRow key={field} label={label} value={field === 'price' ? formatPrice(unit[field]) : field.includes('Area') ? formatArea(unit[field], propertyDetails.areaUnit) : unit[field] ?? (field === 'bedrooms' ? getUnitBedrooms(code) : '')} editSection="project_details" />
                 ))}
               </div>
