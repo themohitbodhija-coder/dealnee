@@ -18,6 +18,39 @@ const fixture = (subtype = 'NEW_PROJECT_APARTMENT') => initializePropertyFormSta
   projectPricing: { unitConfigurations: { bhk2p5_first: unit } },
 });
 
+test.each([
+  ['NEW_PROJECT_APARTMENT', 'sq_ft', '4070', 1376],
+  ['NEW_PROJECT_VILLA', 'sq_ft', '4070', 1376],
+  ['NEW_PROJECT_APARTMENT', 'sq_m', '100', 5203],
+  ['NEW_PROJECT_APARTMENT', 'sq_yards', '100', 6222],
+  ['NEW_PROJECT_APARTMENT', 'sq_ft', '', ''],
+  ['NEW_PROJECT_APARTMENT', 'sq_ft', '0', ''],
+])('calculates project price per sq ft from super built-up area: %s %s %s', (subtype, areaUnit, area, expected) => {
+  const previousAct = global.IS_REACT_ACT_ENVIRONMENT;
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const root = createRoot(document.createElement('div'));
+  const dispatch = jest.fn();
+  const form = fixture(subtype);
+  form.propertyDetails.areaUnit = areaUnit;
+  form.projectPricing = {
+    startingPrice: '5600000', pricePerSqft: '26415',
+    unitConfigurations: { bhk4p5_first: { ...unit, superBuildUpArea: area, carpetArea: '2120' } },
+  };
+  try {
+    act(() => root.render(<ProjectDetailsStep formData={form} dispatch={dispatch} />));
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      payload: { section: 'projectPricing', field: 'pricePerSqft', value: expected },
+    }));
+    dispatch.mockClear();
+    form.basicInfo.subcategory = 'NEW_PROJECT_PLOT';
+    act(() => root.render(<ProjectDetailsStep formData={form} dispatch={dispatch} />));
+    expect(dispatch).not.toHaveBeenCalled();
+  } finally {
+    act(() => root.unmount());
+    global.IS_REACT_ACT_ENVIRONMENT = previousAct;
+  }
+});
+
 test.each(['1.5', '2.5', '3.5', '4.5'])('adds and preserves %s BHK with a whole-number bedroom count', bhk => {
   const previousAct = global.IS_REACT_ACT_ENVIRONMENT;
   global.IS_REACT_ACT_ENVIRONMENT = true;

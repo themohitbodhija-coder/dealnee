@@ -56,7 +56,7 @@ test('adds repeated configurations one by one from the 1–5 BHK dropdown and re
     act(() => container.querySelector('[aria-label="Remove bhk5_unit1"]').click());
     expect(current.projectPricing.unitConfigurations.bhk5_unit1).toBeUndefined();
     expect(current.projectPricing.unitConfigurations.bhk5_unit2).toBeDefined();
-    expect(container.textContent).not.toContain('Super Built-up Area');
+    expect(container.textContent).toContain('Super Built-up Area');
   } finally {
     act(() => root.unmount());
     global.crypto = originalCrypto;

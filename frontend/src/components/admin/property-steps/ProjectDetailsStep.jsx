@@ -52,17 +52,17 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
     [dispatch]
   );
 
-  // Auto-calculate Price Per Sq.Ft = Starting Price / Carpet Area
-  // Uses the first configuration with a carpet area entered.
+  // Auto-calculate Price Per Sq.Ft = Starting Price / Super Built-up Area
+  // Uses the first configuration with a super built-up area entered.
   useEffect(() => {
     if (isPlot) return;
     const startingPrice = parseFloat(projectPricing.startingPrice);
-    const referenceCarpetArea = Object.values(projectPricing.unitConfigurations || {})
-      .map((unit) => parseFloat(unit?.carpetArea))
+    const referenceSuperBuildUpArea = Object.values(projectPricing.unitConfigurations || {})
+      .map((unit) => parseFloat(unit?.superBuildUpArea))
       .find((area) => !isNaN(area) && area > 0);
 
-    const calculatedPricePerSqft = !isNaN(startingPrice) && startingPrice > 0 && referenceCarpetArea
-      ? Math.round(startingPrice / areaInSquareFeet(referenceCarpetArea, formData.propertyDetails.areaUnit)) : '';
+    const calculatedPricePerSqft = !isNaN(startingPrice) && startingPrice > 0 && referenceSuperBuildUpArea
+      ? Math.round(startingPrice / areaInSquareFeet(referenceSuperBuildUpArea, formData.propertyDetails.areaUnit)) : '';
     if (String(calculatedPricePerSqft) !== String(projectPricing.pricePerSqft)) {
       dispatch(createFieldUpdateAction('projectPricing', 'pricePerSqft', calculatedPricePerSqft));
     }
@@ -331,7 +331,7 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
                 onChange={(event) => handlePricingFieldChange('pricePerSqft', event.target.value)}
                 readOnly={!isPlot}
                 placeholder="0"
-                title={isPlot ? undefined : 'Automatically calculated as Starting Price ÷ Carpet Area'}
+                title={isPlot ? undefined : 'Automatically calculated as Starting Price ÷ Super Built-up Area'}
                 className={`w-full pl-8 pr-4 py-3 border rounded-lg ${isPlot ? '' : 'bg-gray-100 cursor-not-allowed'} ${
                   pricingErrors.pricePerSqft ? 'border-red-500' : 'border-gray-300'
                 }`}
