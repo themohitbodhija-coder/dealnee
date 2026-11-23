@@ -80,6 +80,7 @@ exports.getAllProperties = async (req, res, next) => {
       category, 
       type,
       subtype,
+      q,
       minPrice, 
       maxPrice, 
       location, 
@@ -199,6 +200,15 @@ exports.getAllProperties = async (req, res, next) => {
           }
         }
       }
+    }
+
+    // The listing screen can select an exact property shape after choosing a group.
+    if (typeof subtype === 'string' && /^(NEW_PROJECT_(APARTMENT|VILLA|PLOT)|RESALE_(FLAT|VILLA|PLOT)|RENTAL_(FLAT|VILLA|INDIVIDUAL_FLOOR)|COMMERCIAL_(OFFICE|SHOP|SHOWROOM|LAND|WAREHOUSE|INDUSTRIAL|COWORKING)_(SALE|LEASE))$/i.test(subtype)) {
+      filter.subcategory = subtype.toUpperCase();
+    }
+    if (typeof q === 'string' && q.trim()) {
+      const keyword = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$and = [{ $or: ['title', 'description', 'propertyId'].map(field => ({ [field]: new RegExp(keyword, 'i') })) }];
     }
 
     // Price range filter

@@ -1,80 +1,22 @@
 import React from 'react';
 import InquiryForm from '../../components/user/InquiryForm';
-import { FaPhone, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
+import { LuPhone, LuMail, LuMapPin, LuArrowUpRight } from 'react-icons/lu';
+import PublicPageLayout, { PageHero } from '../../components/user/PublicPageLayout';
 
-const ContactPage = () => {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="bg-red-600 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Contact Us</h1>
-          <p className="text-xl text-red-100">We'd love to hear from you. Get in touch with us today.</p>
+const officeQuery = 'ISCON Residency, Patia, Bhubaneswar 751024';
+const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(officeQuery)}`;
+export default function ContactPage() {
+  return <PublicPageLayout className="site-contact">
+    <PageHero page="Contact us" eyebrow="LET’S TALK PROPERTY" title={<>Your next move.<br /><em>Let’s talk.</em></>} description="Buying, selling, renting or simply exploring? Tell us what you have in mind, and our team will help you take the next step." media={<div className="site-contact-form"><p className="site-eyebrow">SEND AN ENQUIRY</p><h2>What can we help you with?</h2><p>Share a few details and leave us a message.</p><InquiryForm submitLabel="Send message" /></div>}>
+      <div className="site-contact-information">
+        <h2>Speak with our team.</h2>
+        <div className="site-contact-methods">
+          <div><span className="site-icon"><LuPhone aria-hidden="true" /></span><div><h3>Call us</h3><a href="tel:+919776621999">+91 9776 621 999 <small>Office</small></a><a href="tel:+919776631999">+91 9776 631 999 <small>Property enquiries</small></a></div></div>
+          <div><span className="site-icon"><LuMail aria-hidden="true" /></span><div><h3>Write to us</h3><a href="mailto:dealinee0@gmail.com">dealinee0@gmail.com</a></div></div>
+          <div><span className="site-icon"><LuMapPin aria-hidden="true" /></span><div><h3>Visit our office</h3><address>Flat GD, Ground Floor, ISCON Residency,<br />Patia, Bhubaneswar, Odisha 751024</address><a href={directions} target="_blank" rel="noopener noreferrer" className="site-text-link">Get directions<LuArrowUpRight aria-hidden="true" /></a></div></div>
         </div>
-      </section>
-
-      {/* Contact Section */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-8">Send us a Message</h2>
-
-              <InquiryForm />
-            </div>
-
-            {/* Contact Info */}
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-8">Contact Information</h2>
-
-              <div className="space-y-8">
-                <div className="flex space-x-4">
-                  <FaPhone className="text-4xl text-red-600 flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">Phone</h3>
-                    <p className="text-gray-600">+91 9776 621 999</p>
-                    <p className="text-gray-600 text-sm mt-2">Contact us anytime</p>
-                  </div>
-                </div>
-
-                <div className="flex space-x-4">
-                  <FaEnvelope className="text-4xl text-red-600 flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">Email</h3>
-                    <p className="text-gray-600">dealinee0@gmail.com</p>
-                  </div>
-                </div>
-
-                <div className="flex space-x-4">
-                  <FaMapMarkerAlt className="text-4xl text-red-600 flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">Address</h3>
-                    <p className="text-gray-600">Flat GD, GROUND FLOOR</p>
-                    <p className="text-gray-600">ISCON RESIDENCY, Patia</p>
-                    <p className="text-gray-600">Bhubaneswar, 751024</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Map */}
-              <div className="mt-12 rounded-lg overflow-hidden h-80 bg-gray-300">
-                <iframe
-                  title="location-map"
-                  width="100%"
-                  height="100%"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3740.8862649835346!2d85.83401!3d20.13256!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a1941feffffff%3A0x0!2sISCON%20RESIDENCY%2C%20Patia%2C%20Bhubaneswar!5e0!3m2!1sen!2sin!4v1234567890"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="lazy"
-                ></iframe>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-export default ContactPage;
+      </div>
+    </PageHero>
+    <section className="site-section site-office-section"><div className="site-shell"><div className="site-section-heading site-heading-with-link"><div><p className="site-eyebrow">FIND US IN BHUBANESWAR</p><h2>A local team. A real address.</h2></div><a href={directions} target="_blank" rel="noopener noreferrer" className="site-text-link">Open in Google Maps<LuArrowUpRight aria-hidden="true" /></a></div><div className="site-office-map"><iframe title="Dealinee Estate office location in Patia, Bhubaneswar" src={`https://maps.google.com/maps?q=${encodeURIComponent(officeQuery)}&output=embed`} loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" /></div></div></section>
+  </PublicPageLayout>;
+}

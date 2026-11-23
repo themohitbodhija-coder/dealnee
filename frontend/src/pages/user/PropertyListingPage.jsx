@@ -1,229 +1,79 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { propertyService, categoryService } from '../../services/api';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { LuChevronRight, LuArrowLeft, LuArrowRight, LuSearch } from 'react-icons/lu';
+import { propertyService } from '../../services/api';
 import PropertyCard from '../../components/user/PropertyCard';
-import FilterBar from '../../components/user/FilterBar';
+import PropertyListingFilters, { listingFilterKeys } from '../../components/user/PropertyListingFilters';
+import './PropertyListingPage.css';
 
-const PropertyListingPage = () => {
-  const [searchParams] = useSearchParams();
-  const propertyType = searchParams.get('type');
-  const propertySubtype = searchParams.get('subtype');
-  const propertyCategory = searchParams.get('category');
-  const querySequence = useRef(0);
-  const cancelPendingQuery = useCallback(() => { ++querySequence.current; }, []);
+export default function PropertyListingPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = useMemo(() => Object.fromEntries(listingFilterKeys.map(key => [key, searchParams.get(key) || ''])), [searchParams]);
+  const page = Math.max(1, Math.min(1000000, Number.parseInt(searchParams.get('page'), 10) || 1));
   const [properties, setProperties] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [error, setError] = useState('');
-  const [totalPages, setTotalPages] = useState(1);
-  // Initialize category and subtype from URL if present - these should NOT be overridable by filters
-  const urlCategory = searchParams.get('category') || '';
-  const urlType = searchParams.get('type') || '';
-  const urlSubtype = searchParams.get('subtype') || '';
-  
-  const [filters, setFilters] = useState({
-    q: searchParams.get('q') || '',
-    minPrice: searchParams.get('minPrice') || '',
-    maxPrice: searchParams.get('maxPrice') || '',
-    location: searchParams.get('location') || '',
-    locality: searchParams.get('locality') || '',
-    type: urlType,  // Set from URL and will be preserved
-    subtype: urlSubtype,  // Set from URL and will be preserved
-    category: urlCategory,  // Set from URL and will be preserved
-    bedrooms: searchParams.get('bedrooms') || '',
-    bathrooms: searchParams.get('bathrooms') || '',
-    minArea: searchParams.get('minArea') || '',
-    maxArea: searchParams.get('maxArea') || '',
-    furnished: searchParams.get('furnished') || '',
-    propertyAge: searchParams.get('propertyAge') || '',
-  });
+  const [totalPages, setTotalPages] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [retry, setRetry] = useState(0);
+  const requestSequence = useRef(0);
+  const results = useRef(null);
 
   useEffect(() => {
-    const keys = ['q','type','subtype','category','minPrice','maxPrice','location','locality','bedrooms','bathrooms','minArea','maxArea','furnished','propertyAge'];
-    setFilters(Object.fromEntries(keys.map(key => [key, searchParams.get(key) || ''])));
-    setPage(1);
-  }, [searchParams]);
-
-  const fetchProperties = useCallback(async () => {
-    const request = ++querySequence.current;
-    try {
-      setLoading(true);
-      setError('');
-      const params = {
-        page,
-        limit: 9,
-        ...(filters.q && { q: filters.q }),
-        ...(filters.type && { type: filters.type }),
-        ...(filters.subtype && { subtype: filters.subtype }),
-        ...(filters.category && { category: filters.category }),
-        ...(filters.minPrice && { minPrice: filters.minPrice }),
-        ...(filters.maxPrice && { maxPrice: filters.maxPrice }),
-        ...(filters.location && { location: filters.location }),
-        ...(filters.locality && { locality: filters.locality }),
-        ...(filters.bedrooms && { bedrooms: filters.bedrooms }),
-        ...(filters.bathrooms && { bathrooms: filters.bathrooms }),
-        ...(filters.minArea && { minArea: filters.minArea }),
-        ...(filters.maxArea && { maxArea: filters.maxArea }),
-        ...(filters.furnished && { furnished: filters.furnished }),
-        ...(filters.propertyAge && { propertyAge: filters.propertyAge }),
-      };
-      const response = await propertyService.getAll(params);
-      if (request !== querySequence.current) return;
-      setProperties(response.data.properties);
-      setTotalPages(response.data.pages);
-    } catch (error) {
-      if (request !== querySequence.current) return;
+    const request = ++requestSequence.current;
+    let active = true;
+    setLoading(true);
+    setError('');
+    const params = { page, limit: 12, ...Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== '')) };
+    propertyService.getAll(params).then(response => {
+      if (!active || request !== requestSequence.current) return;
+      setProperties(response.data.properties || []);
+      setTotalPages(Number(response.data.pages) || 0);
+      setTotal(Number(response.data.total) || 0);
+    }).catch(() => {
+      if (!active || request !== requestSequence.current) return;
       setError('Unable to load properties. Please try again.');
       setProperties([]);
+      setTotal(0);
       setTotalPages(0);
-    } finally {
-      if (request === querySequence.current) setLoading(false);
-    }
-  }, [filters, page]);
-
-  useEffect(() => {
-    fetchProperties();
-    return cancelPendingQuery;
-  }, [fetchProperties, cancelPendingQuery]);
-  useEffect(() => {
-    let active = true;
-    categoryService.getAll().then(response => { if (active) setCategories(response.data.categories); }).catch(() => {});
+    }).finally(() => { if (active && request === requestSequence.current) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [filters, page, retry]);
 
-  const handleFilterChange = (newFilters) => {
-    // Preserve the type, subtype and category from URL - don't allow them to be changed by filters
-    const preservedFilters = {
-      ...newFilters,
-      q: filters.q,
-      type: urlType || newFilters.type,  // Keep URL type if present
-      subtype: urlSubtype || newFilters.subtype,  // Keep URL subtype if present
-      category: urlCategory || newFilters.category // Keep URL category if present
-    };
-    setFilters(preservedFilters);
-    setPage(1);
+  const updateFilters = patch => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(patch).forEach(([key, value]) => { if (value) next.set(key, value); else next.delete(key); });
+    next.delete('page');
+    if (next.toString() === searchParams.toString()) return;
+    ++requestSequence.current;
+    setSearchParams(next);
   };
-
-  const getPropertyTypeTitle = () => {
-    // Buy with subtype and category
-    if (propertyType === 'buy' && propertySubtype === 'newprojects') {
-      const categoryMap = {
-        apartment: '🏢 New Project Apartments',
-        villa: '🏡 New Project Villas',
-        plot: '🌳 Plots in New Projects',
-      };
-      return categoryMap[propertyCategory] || '✨ New Projects for Buy';
-    }
-    if (propertyType === 'buy' && propertySubtype === 'resale') {
-      return '🏠 Resale Properties';
-    }
-    
-    // Commercial with subtype
-    if (propertyType === 'commercial' && propertySubtype === 'buy') {
-      return '🛒 Commercial Properties for Buy';
-    }
-    if (propertyType === 'commercial' && propertySubtype === 'lease') {
-      return '📋 Commercial Properties for Lease';
-    }
-
-    const typeMap = {
-      buy: '🛒 Properties for Buy',
-      rent: '🔑 Properties for Rent',
-      commercial: '🏢 Commercial Properties',
-      lease: '🏠 Lease Properties',
-    };
-    return typeMap[propertyType] || 'All Properties';
+  const clearFilters = () => { if (searchParams.toString()) { ++requestSequence.current; setSearchParams({}); } };
+  const goToPage = nextPage => {
+    const next = new URLSearchParams(searchParams);
+    if (nextPage > 1) next.set('page', nextPage); else next.delete('page');
+    if (next.toString() === searchParams.toString()) return;
+    ++requestSequence.current;
+    setSearchParams(next);
+    results.current?.scrollIntoView?.({ block: 'start' });
   };
+  const title = { buy: 'Properties to buy', rent: 'Properties to rent', commercial: 'Commercial properties' }[filters.type] || 'All properties';
+  const startPage = Math.max(1, Math.min(page - 2, totalPages - 4));
+  const pages = Array.from({ length: Math.min(5, totalPages) }, (_, index) => startPage + index);
 
-  const getPropertyTypeDescription = () => {
-    // Buy with subtype and category
-    if (propertyType === 'buy' && propertySubtype === 'newprojects') {
-      const categoryDescMap = {
-        apartment: 'Explore new residential apartment projects',
-        villa: 'Discover premium villa projects with modern amenities',
-        plot: 'Find plot opportunities in newly developed projects',
-      };
-      return categoryDescMap[propertyCategory] || 'Browse new projects designed for modern living';
-    }
-    if (propertyType === 'buy' && propertySubtype === 'resale') {
-      return 'Browse verified resale properties ready for immediate possession';
-    }
-
-    // Commercial with subtype
-    if (propertyType === 'commercial' && propertySubtype === 'buy') {
-      return 'Explore commercial spaces available for purchase';
-    }
-    if (propertyType === 'commercial' && propertySubtype === 'lease') {
-      return 'Find commercial properties available for lease';
-    }
-
-    const descMap = {
-      buy: 'Browse and purchase your dream property from our extensive collection',
-      rent: 'Find the perfect rental property that suits your lifestyle',
-      commercial: 'Explore commercial spaces and office options for your business',
-      lease: 'Find long-term lease options for residential and commercial use',
-    };
-    return descMap[propertyType] || 'Explore our premium property collection';
-  };
-
-  return (
-    <>
-    {error && <p role="alert" className="p-4 text-center text-red-700">{error}</p>}
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-3">{getPropertyTypeTitle()}</h1>
-          <p className="text-gray-600 text-lg">{getPropertyTypeDescription()}</p>
-          {properties.length > 0 && <p className="text-sm text-gray-500 mt-2">Showing {properties.length} properties</p>}
-        </div>
-
-        {/* Filter Bar - Top */}
-        <FilterBar onFilterChange={handleFilterChange} categories={categories} propertyType={propertyType} propertySubtype={propertySubtype} propertyCategory={urlCategory} />
-
-        {/* Properties Grid - Full Width with Smaller Cards */}
-        <div>
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-            </div>
-          ) : error ? null : properties.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
-                {properties.map((property) => (
-                  <PropertyCard key={property._id} property={property} />
-                ))}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex justify-center space-x-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-                    <button
-                      key={num}
-                      onClick={() => setPage(num)}
-                      className={`px-4 py-2 rounded ${
-                        page === num
-                          ? 'bg-red-600 text-white'
-                          : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">No properties found</p>
-            </div>
-          )}
-        </div>
-      </div>
+  return <div className="listing-page">
+    <div className="listing-shell">
+      <nav aria-label="Breadcrumb" className="listing-breadcrumb"><Link to="/">Home</Link><LuChevronRight aria-hidden="true" /><span aria-current="page">Properties</span></nav>
+      <header className="listing-heading"><p>FIND YOUR NEXT ADDRESS</p><h1>{title}</h1><div>Explore the listings first. Choose a category or refine your search whenever you’re ready.</div></header>
+      <PropertyListingFilters filters={filters} onChange={updateFilters} onReset={clearFilters} />
+      <section className="listing-results" aria-label="Property results" aria-busy={loading} ref={results}>
+        <div className="listing-results-heading"><h2>Available properties</h2><p role="status">{loading ? 'Loading properties…' : error ? '' : `${total} ${total === 1 ? 'property' : 'properties'} found`}</p></div>
+        {loading ? <div className="listing-grid" aria-hidden="true">{[1, 2, 3].map(value => <div key={value} className="listing-skeleton"><div /><span /><span /></div>)}</div>
+          : error ? <div className="listing-message" role="alert"><h3>{error}</h3><button onClick={() => setRetry(value => value + 1)}>Try again</button></div>
+            : properties.length ? <><div className="listing-grid">{properties.map(property => <PropertyCard key={property._id || property.id} property={property} />)}</div>
+              {totalPages > 1 && <nav className="listing-pagination" aria-label="Results pages"><button aria-label="Previous page" disabled={page === 1} onClick={() => goToPage(page - 1)}><LuArrowLeft aria-hidden="true" /></button>{pages.map(number => <button key={number} aria-label={`Page ${number}`} aria-current={page === number ? 'page' : undefined} onClick={() => goToPage(number)}>{number}</button>)}<button aria-label="Next page" disabled={page >= totalPages} onClick={() => goToPage(page + 1)}><LuArrowRight aria-hidden="true" /></button></nav>}</>
+              : <div className="listing-message"><LuSearch aria-hidden="true" /><h3>No properties match these filters.</h3><p>Try a different category, widen your budget, or clear your filters to explore all listings.</p><button onClick={clearFilters}>Show all properties</button></div>}
+      </section>
     </div>
-    </>
-  );
-};
-
-export default PropertyListingPage;
+  </div>;
+}

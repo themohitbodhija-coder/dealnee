@@ -1,0 +1,69 @@
+.dealinee-header {
+  background: #fff;
+  color: #1f2937;
+  border-bottom: 1px solid #f3f4f6;
+  transition: box-shadow .2s ease;
+}
+.dealinee-header.is-scrolled { box-shadow: 0 4px 16px #11182708; }
+.dealinee-header-shell { width: min(100% - 64px, 1200px); margin: 0 auto; }
+.dealinee-header-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 80px; }
+.dealinee-header-logo { display: inline-flex; align-items: center; flex-shrink: 0; }
+.dealinee-header-logo img { height: 56px; width: auto; }
+.dealinee-desktop-links { gap: 4px; }
+.dealinee-nav-link { font-size: 14px; white-space: nowrap; min-height: 44px; display: inline-flex; align-items: center; }
+.dealinee-desktop-links > .group > button { font-size: 14px; min-height: 44px; padding-inline: 12px; }
+.dealinee-header-actions { display: flex; align-items: center; gap: 16px; }
+.dealinee-login-link { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: 13px; font-weight: 600; padding: 10px 16px; border: 1px solid #e5e7eb; border-radius: 8px; color: #374151; }
+.dealinee-login-link:hover { background: #f9fafb; }
+.dealinee-header :is(a, button, summary):focus-visible { outline: 3px solid #dc2626; outline-offset: 3px; }
+.dealinee-contact-menu { position: relative; }
+.dealinee-contact-menu summary { display: flex; align-items: center; gap: 10px; list-style: none; cursor: pointer; min-height: 44px; padding: 6px 8px; font-size: 13px; font-weight: 600; border-radius: 8px; }
+.dealinee-contact-menu summary::-webkit-details-marker { display: none; }
+.dealinee-contact-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #fef2f2; color: #b91c1c; }
+.dealinee-contact-icon svg { width: 17px; height: 17px; }
+.dealinee-contact-chevron { width: 12px; height: 12px; color: #6b7280; transition: transform .2s; }
+.dealinee-contact-menu[open] .dealinee-contact-chevron { transform: rotate(180deg); }
+.dealinee-contact-menu[open] summary, .dealinee-contact-menu summary:hover { background: #f9fafb; }
+.dealinee-contact-panel { position: absolute; top: calc(100% + 12px); right: 0; width: 288px; border-radius: 12px; background: #fff; border: 1px solid #e5e7eb; padding: 16px; box-shadow: 0 12px 36px #11182712; z-index: 60; }
+.dealinee-contact-panel > p { color: #6b7280; font-size: 11px; padding: 0 8px 12px; }
+.dealinee-contact-panel a { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 8px; border-radius: 6px; font-size: 13px; color: #374151; }
+.dealinee-contact-panel a:hover { background: #fef2f2; }
+.dealinee-contact-panel a > svg { width: 17px; height: 17px; color: #b91c1c; flex-shrink: 0; }
+.dealinee-contact-panel small { display: block; color: #6b7280; font-size: 10px; margin-top: 3px; }
+@media (max-width: 1023px) {
+  .dealinee-header-shell { width: calc(100% - 48px); }
+  .dealinee-header-row { min-height: 72px; gap: 16px; }
+  .dealinee-header-logo img { height: 50px; }
+  .dealinee-header-actions { gap: 8px; }
+}
+@media (max-width: 767px) {
+  .dealinee-header-shell { width: calc(100% - 32px); }
+  .dealinee-contact-text, .dealinee-contact-chevron { display: none; }
+  .dealinee-contact-menu summary { padding: 4px; }
+  .dealinee-contact-panel { position: fixed; top: 76px; right: 16px; width: min(288px, calc(100vw - 32px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dealinee-header, .dealinee-contact-chevron { transition: none; }
+}
+.dealinee-account-name { max-width: 100px; }
+.dealinee-account-name p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .dealinee-header-row { gap: 16px; }
+  .dealinee-contact-text, .dealinee-contact-chevron { display: none; }
+  .dealinee-desktop-links { gap: 0; }
+  .dealinee-nav-link, .dealinee-desktop-links > .group > button { padding-inline: 8px; font-size: 13px; }
+  .dealinee-account button { padding-inline: 10px; font-size: 12px; }
+}
+.dealinee-header-contact { display: flex; align-items: center; gap: 2px; }
+.dealinee-office-phone { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; white-space: nowrap; font-size: 13px; font-weight: 600; color: #374151; }
+.dealinee-office-phone small { display: block; color: #6b7280; font-size: 10px; font-weight: 400; margin-bottom: 2px; }
+.dealinee-office-phone:hover { color: #b91c1c; }
+.dealinee-contact-menu summary { width: 44px; justify-content: center; }
+.dealinee-contact-menu .dealinee-contact-chevron { display: block; width: 14px; height: 14px; }
+.dealinee-contact-login { margin-top: 10px; border-top: 1px solid #e5e7eb; border-radius: 0 !important; }
+@media (max-width: 767px) {
+  .dealinee-header-row { gap: 8px; }
+  .dealinee-header-actions { gap: 0; }
+  .dealinee-office-phone { font-size: 11px; }
+  .dealinee-office-phone > .dealinee-contact-icon, .dealinee-office-phone small { display: none; }
+}

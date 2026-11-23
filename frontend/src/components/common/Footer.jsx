@@ -1,9 +1,14 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaArrowRight, FaHeart } from 'react-icons/fa';
 
+import HomeFooter from '../user/HomeFooter';
+
 const Footer = () => {
+  const { pathname } = useLocation();
   const currentYear = new Date().getFullYear();
+
+  if (['/', '/about', '/carrier', '/contact', '/properties'].includes(pathname) || pathname.startsWith('/property/')) return <HomeFooter />;
 
   return (
     <footer className="bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-gray-300">
