@@ -65,7 +65,7 @@ test.each([
   }
 });
 
-test('formats project facts, changes gallery images without opening the lightbox, and opens an accessible inquiry dialog', async () => {
+test('formats project facts, changes gallery images without opening the lightbox, and links enquiries to WhatsApp', async () => {
   const previous = global.IS_REACT_ACT_ENVIRONMENT;
   global.IS_REACT_ACT_ENVIRONMENT = true;
   const originalShow = HTMLDialogElement.prototype.showModal;
@@ -98,11 +98,16 @@ test('formats project facts, changes gallery images without opening the lightbox
     expect(container.querySelector('.property-gallery-main img').getAttribute('src')).toContain('/two.jpg');
     expect(container.querySelector('.property-photo-position').textContent).toBe('2 / 3');
     expect(container.querySelector('.property-page > .fixed')).toBeNull();
-    act(() => container.querySelector('.property-mobile-contact button').click());
-    expect(container.querySelector('dialog').open).toBe(true);
-    expect(container.querySelector('form[aria-label="Inquiry form"]')).not.toBeNull();
-    act(() => container.querySelector('[aria-label="Close inquiry"]').click());
-    expect(container.querySelector('dialog').open).toBe(false);
+    const enquiries = container.querySelectorAll('a[href^="https://wa.me/"]');
+    expect(enquiries).toHaveLength(3);
+    enquiries.forEach(link => {
+      const url = new URL(link.href);
+      expect(url.pathname).toBe('/919776631999');
+      expect(url.searchParams.get('text')).toBe(`Hi Dealinee Estate, I would like to enquire about DN Kings Land.\n${window.location.origin}/property/project`);
+      expect(link.target).toBe('_blank');
+    });
+    expect(container.querySelector('dialog')).toBeNull();
+    expect(container.querySelector('form[aria-label="Inquiry form"]')).toBeNull();
   } finally {
     act(() => root.unmount());
     HTMLDialogElement.prototype.showModal = originalShow;

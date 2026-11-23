@@ -12,11 +12,12 @@ import {
   LuWallet as FaMoneyBillWave, LuGlobe2 as FaGlobeAmericas, LuArrowLeftRight as FaExchangeAlt,
   LuFileCheck2 as FaFileContract, LuTrendingUp as FaChartLine, LuHome as FaHome,
   LuBuilding2 as FaBuilding, LuTrees as FaTree, LuBriefcase as FaBriefcase,
-  LuPhone as FaPhone, LuCheck as FaCheck, LuPause, LuPlay,
+  LuPhone as FaPhone, LuCheck as FaCheck,
 } from 'react-icons/lu';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useMediaQuery, usePageVisible } from '../../hooks/useMediaPreferences';
 import './HomePage.css';
+import { getWhatsAppUrl } from '../../utils/whatsapp';
 
 const SERVICES = [
   {
@@ -82,18 +83,15 @@ const formatPrice = value => {
 function FeaturedProperty({ property, spotlight }) {
   const [imageIndex, setImageIndex] = useState(0);
   const [failedImages, setFailedImages] = useState([]);
-  const [paused, setPaused] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const visible = usePageVisible();
   const images = (property.images || []).map(getImageUrl).filter(url => url && !failedImages.includes(url));
   const photoIndex = images.length ? imageIndex % images.length : 0;
   useEffect(() => {
-    if (images.length < 2 || paused || hovered || focused || reducedMotion || !visible) return undefined;
+    if (images.length < 2 || reducedMotion || !visible) return undefined;
     const timer = setInterval(() => setImageIndex(index => index + 1), 3000);
     return () => clearInterval(timer);
-  }, [images.length, paused, hovered, focused, reducedMotion, visible]);
+  }, [images.length, reducedMotion, visible]);
   const rental = String(property.propertyType).toUpperCase() === 'RENT';
   const price = rental ? property.rentalInfo?.monthlyRent || property.price : property.price;
   const rooms = getPropertyRoomStats(property);
@@ -102,12 +100,12 @@ function FeaturedProperty({ property, spotlight }) {
   const location = typeof property.location === 'string' ? property.location : getPropertyLocationLabel({ locality: property.location?.locality, city: property.location?.city, state: property.location?.state });
   const areaUnit = ({ sq_ft: 'sq ft', sq_m: 'sq m', sq_yards: 'sq yd' })[property.areaUnit] || property.areaUnit || '';
   return (
-    <article className={`home-property-card ${spotlight ? 'home-property-spotlight' : ''}`} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+    <article className={`home-property-card ${spotlight ? 'home-property-spotlight' : ''}`}>
       <div className="home-property-image">
         <Link to={`/property/${property._id || property.id}`} className="home-property-photo-link" aria-label={`View ${property.title}`}>
           {images.length ? images.map((image, index) => <img key={image} className={`home-rotating-photo ${index === photoIndex ? 'is-active' : ''}`} src={image} alt={index === photoIndex ? property.title : ''} aria-hidden={index !== photoIndex} loading="lazy" onError={() => setFailedImages(previous => [...previous, image])} />) : <div className="home-image-placeholder"><FaBuilding aria-hidden="true" /><span>Photos coming soon</span></div>}
         </Link>
-        {images.length > 1 && <><span className="home-photo-number">{photoIndex + 1} / {images.length}</span><button type="button" className="home-photo-pause" aria-label={paused ? `Play photos of ${property.title}` : `Pause photos of ${property.title}`} aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? <LuPlay aria-hidden="true" /> : <LuPause aria-hidden="true" />}</button></>}
+        {images.length > 1 && <span className="home-photo-number">{photoIndex + 1} / {images.length}</span>}
         <span className="home-property-badge">{rental ? 'For rent' : 'For sale'}</span>
       </div>
       <Link to={`/property/${property._id || property.id}`} className="home-property-copy">
@@ -132,7 +130,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
-  const [developersPaused, setDevelopersPaused] = useState(false);
+  const visible = usePageVisible();
   const retryFeatured = useCallback(() => setRetry(value => value + 1), []);
   useEffect(() => {
     let active = true;
@@ -153,7 +151,7 @@ export default function HomePage() {
   }, [retry]);
 
   return (
-    <div className="home-page">
+    <div className="home-page" style={{ '--home-animation-state': visible ? 'running' : 'paused' }}>
       <HeroSection />
       <section className="home-section home-featured" aria-labelledby="home-featured-title">
         <div className="home-shell">
@@ -179,8 +177,8 @@ export default function HomePage() {
         <div className="home-shell">
           <div className="home-section-heading"><div><p className="home-eyebrow">BEYOND THE PROPERTY SEARCH</p><h2 id="home-services-title">Expertise for every step.</h2><p>Complete real estate solutions under one roof.</p></div></div>
           <div className="home-services-grid">
-            {SERVICES.map(({ id, icon: Icon, title, description }) => <article key={id} className="home-service"><div className="home-service-top"><span className="home-service-icon"><Icon aria-hidden="true" /></span><span>{String(id).padStart(2, '0')}</span></div><h3>{title}</h3><p>{description}</p><Link to="/contact" aria-label={`Discuss ${title}`}>Let’s talk <FaArrowRight aria-hidden="true" /></Link></article>)}
-            <div className="home-service-consult"><p className="home-eyebrow">YOUR TRUSTED REAL ESTATE PARTNER</p><h3>A little guidance.<br />A lot more clarity.</h3><p>From finding the right property to managing it with confidence. Tell us your plans, and we’ll help you take the next step.</p><Link to="/contact" className="home-button home-button-primary">Discuss your requirement <FaArrowRight aria-hidden="true" /></Link></div>
+            {SERVICES.map(({ id, icon: Icon, title, description }) => <article key={id} className="home-service"><div className="home-service-top"><span className="home-service-icon"><Icon aria-hidden="true" /></span><span>{String(id).padStart(2, '0')}</span></div><h3>{title}</h3><p>{description}</p><a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" aria-label={`Discuss ${title} on WhatsApp`}>Let’s talk <FaWhatsapp aria-hidden="true" /></a></article>)}
+            <div className="home-service-consult"><p className="home-eyebrow">YOUR TRUSTED REAL ESTATE PARTNER</p><h3>A little guidance.<br />A lot more clarity.</h3><p>From finding the right property to managing it with confidence. Tell us your plans, and we’ll help you take the next step.</p><a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" className="home-button home-button-primary">Discuss your requirement <FaWhatsapp aria-hidden="true" /></a></div>
           </div>
         </div>
       </section>
@@ -197,14 +195,15 @@ export default function HomePage() {
       </section>
 
       <section className="home-developers" aria-label="Featured developers"><div className="home-shell">
-        <div className="home-developer-heading"><div><p className="home-eyebrow">EXPLORE THE NAMES BEHIND THE HOMES</p><h2>Featured developers</h2></div><button type="button" className="home-motion-control" aria-label={developersPaused ? 'Play developer logos' : 'Pause developer logos'} aria-pressed={developersPaused} onClick={() => setDevelopersPaused(value => !value)}>{developersPaused ? <LuPlay aria-hidden="true" /> : <LuPause aria-hidden="true" />}</button></div>
-        <div className={`home-developer-window ${developersPaused ? 'is-paused' : ''}`}><div className="home-developer-track">
+        <div className="home-developer-heading"><div><p className="home-eyebrow">EXPLORE THE NAMES BEHIND THE HOMES</p><h2>Featured developers</h2></div></div>
+        <div className="home-developer-window"><div className="home-developer-track">
           {[0, 1].map(copy => <div key={copy} className="home-developer-group" aria-hidden={copy === 1 ? true : undefined}>{[1, 2, 3, 4, 5, 6].map(value => <div className="home-developer-logo" key={value}><img src={`/images/dev${value}.png`} alt={copy === 1 ? '' : `Featured developer ${value}`} width="140" height="64" loading="lazy" /></div>)}</div>)}
         </div></div>
       </div></section>
 
-      <section className="home-section home-contact-section" aria-labelledby="home-contact-title"><div className="home-shell"><div className="home-contact-panel"><div><p className="home-eyebrow">LET’S FIND YOUR NEXT ADDRESS</p><h2 id="home-contact-title">Your plans. Our local expertise.</h2><p>Tell us what you have in mind. We’ll help you find the way forward.</p></div><div className="home-contact-actions"><Link to="/contact" className="home-button home-button-primary">Talk to our team <FaArrowRight aria-hidden="true" /></Link><a href="tel:+919776631999"><FaPhone aria-hidden="true" /> +91 9776 631 999</a></div></div></div></section>
-      <div className="home-mobile-contact"><a href="tel:+919776631999"><FaPhone aria-hidden="true" /> Call our team</a><a href="https://wa.me/919776631999" target="_blank" rel="noopener noreferrer"><FaWhatsapp aria-hidden="true" /> WhatsApp</a></div>
+      <section className="home-section home-contact-section" aria-labelledby="home-contact-title"><div className="home-shell"><div className="home-contact-panel"><div><p className="home-eyebrow">LET’S FIND YOUR NEXT ADDRESS</p><h2 id="home-contact-title">Your plans. Our local expertise.</h2><p>Tell us what you have in mind. We’ll help you find the way forward.</p></div><div className="home-contact-actions"><a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" className="home-button home-button-primary"><FaWhatsapp aria-hidden="true" /> Ask on WhatsApp</a><a href="tel:+917008937155"><FaPhone aria-hidden="true" /> +91 9776 631 999</a></div></div></div></section>
+      <a className="home-whatsapp-floating" href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer"><FaWhatsapp aria-hidden="true" /> Ask on WhatsApp</a>
+      <div className="home-mobile-contact"><a href="tel:+919776631999"><FaPhone aria-hidden="true" /> Call our team</a><a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer"><FaWhatsapp aria-hidden="true" /> WhatsApp</a></div>
     </div>
   );
 }

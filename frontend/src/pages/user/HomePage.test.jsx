@@ -89,7 +89,7 @@ test('failed featured request can be retried and empty inventory has a useful br
 });
 
 
-test('property photos rotate every three seconds, pause during interaction, and honor the pause control', async () => {
+test('property photos keep rotating during hover and focus without pause controls', async () => {
   jest.useFakeTimers();
   propertyService.getFeatured.mockResolvedValue({ data: { properties: [{ ...listing, images: ['/one.jpg', '/two.jpg', '/three.jpg'] }] } });
   try {
@@ -98,15 +98,13 @@ test('property photos rotate every three seconds, pause during interaction, and 
     expect(active()).toContain('/one.jpg');
     act(() => jest.advanceTimersByTime(3000));
     expect(active()).toContain('/two.jpg');
-    act(() => container.querySelector('.home-photo-pause').click());
-    act(() => jest.advanceTimersByTime(6000));
-    expect(active()).toContain('/two.jpg');
-    act(() => container.querySelector('.home-photo-pause').click());
-    act(() => jest.advanceTimersByTime(3000));
-    expect(active()).toContain('/three.jpg');
+    expect(container.querySelector('.home-photo-pause')).toBeNull();
     act(() => container.querySelector('.home-property-card').dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
     act(() => jest.advanceTimersByTime(3000));
     expect(active()).toContain('/three.jpg');
+    act(() => container.querySelector('.home-property-photo-link').focus());
+    act(() => jest.advanceTimersByTime(3000));
+    expect(active()).toContain('/one.jpg');
   } finally { jest.useRealTimers(); }
 });
 
@@ -121,6 +119,66 @@ test('hero keeps cycling through the existing videos, including the case-sensiti
   expect(video.getAttribute('src')).toBe('/images/hero_video3.mp4');
   act(() => video.dispatchEvent(new Event('ended', { bubbles: true })));
   expect(video.getAttribute('src')).toBe('/images/Hero_video1.mp4');
-  act(() => container.querySelector('[aria-label="Pause hero video"]').click());
-  expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
+  expect(video.autoplay).toBe(true);
+  expect(video.muted).toBe(true);
+  expect(video.playsInline).toBe(true);
+  expect(video.controls).toBe(false);
+  expect(container.querySelector('.home-video-control')).toBeNull();
+  expect(container.querySelector('.home-motion-control')).toBeNull();
+});
+
+function mockMediaQueries(reducedMotion = false) {
+  window.matchMedia = jest.fn(query => ({
+    matches: query === '(prefers-reduced-motion: reduce)' && reducedMotion,
+    addEventListener: jest.fn(), removeEventListener: jest.fn(),
+  }));
+}
+
+test('hero autoplays on mobile, pauses while hidden, resumes and falls back on video error', async () => {
+  const previous = window.matchMedia;
+  mockMediaQueries();
+  try {
+    await render();
+    const video = container.querySelector('video');
+    expect(video.autoplay).toBe(true);
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
+    const hidden = jest.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
+    expect(container.querySelector('.home-page').style.getPropertyValue('--home-animation-state')).toBe('paused');
+    hidden.mockReturnValue(false);
+    HTMLMediaElement.prototype.play.mockClear();
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
+    act(() => video.dispatchEvent(new Event('error')));
+    expect(container.querySelector('video')).toBeNull();
+    expect(container.querySelector('.home-hero-visual > img').getAttribute('src')).toBe('/images/hero-2.jpg');
+  } finally { window.matchMedia = previous; }
+});
+
+test('reduced-motion preferences stop video playback and photo rotation', async () => {
+  const previous = window.matchMedia;
+  mockMediaQueries(true);
+  jest.useFakeTimers();
+  propertyService.getFeatured.mockResolvedValue({ data: { properties: [{ ...listing, images: ['/one.jpg', '/two.jpg'] }] } });
+  try {
+    await render();
+    expect(container.querySelector('video').autoplay).toBe(false);
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+    act(() => jest.advanceTimersByTime(6000));
+    expect(container.querySelector('.home-rotating-photo.is-active').getAttribute('src')).toContain('/one.jpg');
+  } finally { window.matchMedia = previous; jest.useRealTimers(); }
+});
+
+test('homepage enquiries share the WhatsApp number and draft while property navigation remains local', async () => {
+  await render();
+  const enquiries = container.querySelectorAll('a[href^="https://wa.me/"]');
+  expect(enquiries.length).toBe(12);
+  enquiries.forEach(link => {
+    const url = new URL(link.href);
+    expect(url.pathname).toBe('/919776631999');
+    expect(url.searchParams.get('text')).toContain('Hi Dealinee Estate');
+    expect(link.target).toBe('_blank');
+  });
+  expect(container.querySelector('.home-property-photo-link').getAttribute('href')).toBe('/property/listing-1');
 });

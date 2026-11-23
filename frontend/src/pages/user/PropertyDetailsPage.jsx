@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { propertyService } from '../../services/api';
-import { FaMapMarkerAlt, FaBed, FaBath, FaRuler, FaPhone, FaEnvelope, FaArrowLeft, FaCheckCircle, FaTag, FaInfo } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaBed, FaBath, FaRuler, FaPhone, FaWhatsapp, FaArrowLeft, FaCheckCircle, FaTag, FaInfo } from 'react-icons/fa';
 import './PropertyDetailsPage.css';
-import InquiryForm from '../../components/user/InquiryForm';
+import { getWhatsAppUrl } from '../../utils/whatsapp';
 import ImageLightbox from '../../components/user/ImageLightbox';
 import { getUnitBhk, isApartmentProject } from '../../utils/projectUnits';
 import { getImageUrl } from '../../utils/imageUrl';
@@ -36,20 +36,13 @@ const PropertyDetailsPage = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [showContactForm, setShowContactForm] = useState(false);
-  const inquiryDialog = useRef(null);
   const touchStart = useRef(null);
-  useEffect(() => {
-    if (showContactForm && inquiryDialog.current && !inquiryDialog.current.open) inquiryDialog.current.showModal();
-    else if (!showContactForm && inquiryDialog.current?.open) inquiryDialog.current.close();
-  }, [showContactForm]);
   useEffect(() => {
     let active = true;
     setLoading(true);
     setProperty(null);
     setCurrentImageIndex(0);
     setShowLightbox(false);
-    setShowContactForm(false);
     const fetchProperty = async () => {
       try {
         const response = await propertyService.getById(id);
@@ -132,6 +125,7 @@ const PropertyDetailsPage = () => {
   const phone = property.contact?.phone || '9776631999';
   const email = property.contact?.email || 'dealinee0@gmail.com';
   const phoneHref = `tel:${String(phone).replace(/[^+\d]/g, '')}`;
+  const whatsappHref = getWhatsAppUrl({ title: property.title, propertyPath: `/property/${encodeURIComponent(id)}` });
   const configurations = [...new Set(Object.keys(projectPricing.unitConfigurations || {}).map(getUnitBhk).filter(Boolean))];
   const changeImage = direction => setCurrentImageIndex(index => (index + direction + images.length) % images.length);
 
@@ -157,7 +151,7 @@ const PropertyDetailsPage = () => {
               <p className="property-eyebrow">{isRentalProperty ? 'Monthly rent' : showProjectDetails ? 'Starting price' : 'Price'}</p>
               <p className="property-price">{compactPrice(property.price)}{isRentalProperty && <small> / month</small>}</p>
               {Number(property.price) > 0 && <p className="property-full-price">₹{displayNumber(property.price)}</p>}
-              <button className="property-primary property-heading-inquiry" onClick={() => setShowContactForm(true)}>Send Inquiry <FaEnvelope aria-hidden="true" /></button>
+              <a className="property-primary property-heading-inquiry" href={whatsappHref} target="_blank" rel="noopener noreferrer">Ask on WhatsApp <FaWhatsapp aria-hidden="true" /></a>
             </div>
           </header>
 
@@ -656,7 +650,7 @@ const PropertyDetailsPage = () => {
                 <span className="property-agent-icon"><FaPhone aria-hidden="true" /></span>
                 <div><h2>{property.contact?.name || 'Dealinee Estate'}</h2><p>Contact our property team</p></div>
               </div>
-              <button onClick={() => setShowContactForm(true)} className="property-primary">Send Inquiry <FaEnvelope aria-hidden="true" /></button>
+              <a className="property-primary" href={whatsappHref} target="_blank" rel="noopener noreferrer">Ask on WhatsApp <FaWhatsapp aria-hidden="true" /></a>
               <a href={phoneHref} className="property-secondary"><FaPhone aria-hidden="true" /> Call {phone}</a>
               <a className="property-email" href={`mailto:${email}`}>{email}</a>
             </div>
@@ -666,12 +660,9 @@ const PropertyDetailsPage = () => {
 
       <div className="property-mobile-contact" aria-label="Property contact actions">
         <a href={phoneHref} className="property-secondary"><FaPhone aria-hidden="true" /> Call</a>
-        <button className="property-primary" onClick={() => setShowContactForm(true)}>Send Inquiry <FaEnvelope aria-hidden="true" /></button>
+        <a className="property-primary" href={whatsappHref} target="_blank" rel="noopener noreferrer">Ask on WhatsApp <FaWhatsapp aria-hidden="true" /></a>
       </div>
-      <dialog ref={inquiryDialog} className="property-inquiry-dialog" aria-labelledby="property-inquiry-title" onCancel={() => setShowContactForm(false)} onClose={() => setShowContactForm(false)}>
-        <div className="property-dialog-header"><div><p className="property-eyebrow">{property.title}</p><h2 id="property-inquiry-title">Enquire about this property</h2></div><button onClick={() => setShowContactForm(false)} aria-label="Close inquiry">×</button></div>
-        {showContactForm && <InquiryForm key={id} propertyId={id} submitLabel="Submit Inquiry" />}
-      </dialog>
+
 
       {/* Image Lightbox */}
       {showLightbox && images.length > 0 && (

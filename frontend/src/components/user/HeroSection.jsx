@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LuArrowRight as FaArrowRight, LuMapPin as FaMapMarkerAlt, LuSearch as FaSearch, LuSlidersHorizontal as FaSlidersH, LuPause, LuPlay } from 'react-icons/lu';
+import { LuArrowRight as FaArrowRight, LuMapPin as FaMapMarkerAlt, LuSearch as FaSearch, LuSlidersHorizontal as FaSlidersH } from 'react-icons/lu';
+import { FaWhatsapp } from 'react-icons/fa';
+import { getWhatsAppUrl } from '../../utils/whatsapp';
 import { useMediaQuery, usePageVisible } from '../../hooks/useMediaPreferences';
 
 const HERO_VIDEOS = ['/images/Hero_video1.mp4', '/images/Hero_video2.mp4', '/images/hero_video3.mp4'];
@@ -18,12 +20,10 @@ export default function HeroSection() {
   const navigate = useNavigate();
   const video = useRef(null);
   const [videoIndex, setVideoIndex] = useState(0);
-  const [videoPaused, setVideoPaused] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
-  const desktop = useMediaQuery('(min-width: 768px)', true);
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const visible = usePageVisible();
-  const videoPlaying = desktop && visible && !videoPaused && !reducedMotion;
+  const videoPlaying = visible && !reducedMotion;
   useEffect(() => {
     if (!video.current) return;
     if (videoPlaying) video.current.play()?.catch(() => {});
@@ -58,11 +58,10 @@ export default function HeroSection() {
             <p className="home-eyebrow"><span /> YOUR NEXT CHAPTER STARTS HERE</p>
             <h1 id="home-title">Find a place.<br />Make it <em>yours.</em></h1>
             <p className="home-hero-description">Discover homes, plots and business spaces in Bhubaneswar. Get local guidance at every step.</p>
-            <Link to="/contact" className="home-text-link">Let’s talk about your next move <FaArrowRight aria-hidden="true" /></Link>
+            <a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" className="home-text-link"><FaWhatsapp aria-hidden="true" /> Ask on WhatsApp</a>
           </div>
           <div className="home-hero-visual">
             {videoFailed ? <img src="/images/hero-2.jpg" alt="Contemporary residences with spacious balconies" width="1200" height="800" /> : <video ref={video} src={HERO_VIDEOS[videoIndex]} poster="/images/hero-2.jpg" autoPlay={videoPlaying} muted playsInline preload="metadata" aria-label="Property and interior inspiration" onEnded={() => setVideoIndex(index => (index + 1) % HERO_VIDEOS.length)} onError={() => setVideoFailed(true)} />}
-            {!videoFailed && !reducedMotion && <button type="button" className="home-video-control" onClick={() => setVideoPaused(value => !value)} aria-label={videoPaused ? 'Play hero video' : 'Pause hero video'} aria-pressed={videoPaused}>{videoPaused ? <LuPlay aria-hidden="true" /> : <LuPause aria-hidden="true" />}</button>}
             <div className="home-visual-caption"><span>SPACE FOR WHAT MATTERS</span><p>A new address.<br />A fresh beginning.</p></div>
             <span className="home-image-label">Residential · Commercial · Land</span>
           </div>
