@@ -1,650 +1,210 @@
-import React, { useState, useEffect } from 'react';
-import Slider from 'react-slick';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { propertyService } from '../../services/api';
 import HeroSection from '../../components/user/HeroSection';
-import Container from '../../components/common/Container';
 import { getImageUrl } from '../../utils/imageUrl';
-import { getPropertyRoomStats } from '../../utils/propertyFormUtils';
-
+import { getPropertyRoomStats, getPropertyLocationLabel } from '../../utils/propertyFormUtils';
+import { getUnitBhk } from '../../utils/projectUnits';
+import { isResidentialPlot } from '../../utils/plotDetails';
 import {
-  FaCheckCircle,
-  FaUsers,
-  FaHome,
-  FaAward,
-  FaArrowRight,
-  FaStar,
-  FaMapMarkerAlt,
-  FaBed,
-  FaBath,
-  FaRulerCombined,
-  FaHandHoldingUsd,
-  FaMoneyBillWave,
-  FaGlobeAmericas,
-  FaExchangeAlt,
-  FaFileContract,
-  FaChartLine,
-  FaWhatsapp
-} from 'react-icons/fa';
-
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
-
-// ==================== CONSTANTS ====================
-const TESTIMONIALS = [
-  {
-    id: 1,
-    name: 'Rajesh Kumar',
-    location: 'Mumbai',
-    text: 'Found my dream home within a week! Amazing experience.',
-    rating: 5,
-    image: 'https://randomuser.me/api/portraits/men/45.jpg'
-  },
-  {
-    id: 2,
-    name: 'Priya Singh',
-    location: 'Bangalore',
-    text: 'Best platform for property search.',
-    rating: 5,
-    image: 'https://randomuser.me/api/portraits/women/44.jpg'
-  },
-  {
-    id: 3,
-    name: 'Amit Patel',
-    location: 'Delhi',
-    text: 'Sold my property in record time.',
-    rating: 5,
-    image: 'https://randomuser.me/api/portraits/men/65.jpg'
-  }
-];
+  LuArrowRight as FaArrowRight, LuMapPin as FaMapMarkerAlt, LuBedDouble as FaBed,
+  LuBath as FaBath, LuRuler as FaRulerCombined, LuLandmark as FaHandHoldingUsd,
+  LuWallet as FaMoneyBillWave, LuGlobe2 as FaGlobeAmericas, LuArrowLeftRight as FaExchangeAlt,
+  LuFileCheck2 as FaFileContract, LuTrendingUp as FaChartLine, LuHome as FaHome,
+  LuBuilding2 as FaBuilding, LuTrees as FaTree, LuBriefcase as FaBriefcase,
+  LuPhone as FaPhone, LuCheck as FaCheck, LuPause, LuPlay,
+} from 'react-icons/lu';
+import { FaWhatsapp } from 'react-icons/fa';
+import { useMediaQuery, usePageVisible } from '../../hooks/useMediaPreferences';
+import './HomePage.css';
 
 const SERVICES = [
   {
     id: 1,
     icon: FaHandHoldingUsd,
     title: 'Home Buying Consultancy',
-    description: 'Expert guidance for property investment'
+    description: 'Expert guidance to identify, evaluate and acquire the right property.'
   },
   {
     id: 2,
     icon: FaMoneyBillWave,
-    title: 'Home Loan Assistance',
-    description: 'Seamless financing solutions'
+    title: 'Home Loan & Financial Assistance',
+    description: 'Support with home loan options, financing solutions and banking coordination.'
   },
   {
     id: 3,
     icon: FaGlobeAmericas,
-    title: 'NRI Consulting',
-    description: 'Support for overseas investors'
+    title: 'NRI Property Advisory',
+    description: 'Property consultation and transaction guidance for overseas Indians.'
   },
   {
     id: 4,
     icon: FaExchangeAlt,
-    title: 'Resale Services',
-    description: 'Maximize returns on sale'
+    title: 'Property Resale & Sales Assistance',
+    description: 'Professional support to sell your property with smooth transaction coordination.'
   },
   {
     id: 5,
     icon: FaFileContract,
-    title: 'Legal Assistance',
-    description: 'Documentation & compliance'
+    title: 'Legal & Documentation Support',
+    description: 'Assistance with property documents, verification, agreements and compliance coordination.'
   },
   {
     id: 6,
+    icon: FaHome,
+    title: 'Property Management Services',
+    description: 'Tenant coordination, rent collection, maintenance and regular property supervision.'
+  },
+  {
+    id: 7,
     icon: FaChartLine,
-    title: 'Investment Consultancy',
-    description: 'Strategic investment planning'
+    title: 'Real Estate Investment Advisory',
+    description: 'Investment guidance focused on asset appreciation and long-term value.'
   }
 ];
 
-const CERTIFICATES = [
-  { id: 1, name: 'BMC', image: '/images/bmc.png' },
-  { id: 2, name: 'CMC', image: '/images/cmc.png' },
-  { id: 3, name: 'BDA', image: '/images/bda-1.png' },
-  { id: 4, name: 'RERA', image: '/images/rera-1.png' },
-  { id: 5, name: 'ORERA', image: '/images/orera-1.png' }
-];
 
-const DEVELOPERS = [
-  { id: 1, image: '/images/dev1.png' },
-  { id: 2, image: '/images/dev2.png' },
-  { id: 3, image: '/images/dev3.png' },
-  { id: 4, image: '/images/dev4.png' },
-  { id: 5, image: '/images/dev5.png' },
-  { id: 6, image: '/images/dev6.png' },
+const CATEGORIES = [
+  { title: 'Apartments', detail: 'A home above the everyday', icon: FaBuilding, url: '/properties?type=buy&subtype=newprojects&category=apartment' },
+  { title: 'Villas', detail: 'More room to make your own', icon: FaHome, url: '/properties?type=buy&subtype=newprojects&category=villa' },
+  { title: 'Plots & land', detail: 'Build your own beginning', icon: FaTree, url: '/properties?type=buy&subtype=newprojects&category=plot' },
+  { title: 'Commercial', detail: 'Space for your next ambition', icon: FaBriefcase, url: '/properties?type=commercial' },
 ];
-
-// ==================== SLIDER SETTINGS ====================
-const DEVELOPER_SLIDER_SETTINGS = {
-  dots: false,
-  infinite: true,
-  speed: 4000,
-  slidesToShow: 5,
-  slidesToScroll: 1,
-  autoplay: true,
-  autoplaySpeed: 0,
-  cssEase: 'linear',
-  arrows: false,
-  responsive: [
-    { breakpoint: 1024, settings: { slidesToShow: 3 } },
-    { breakpoint: 768, settings: { slidesToShow: 2 } }
-  ]
+const formatNumber = value => Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+const formatPrice = value => {
+  const price = Number(value);
+  if (!Number.isFinite(price) || price <= 0) return 'Price on request';
+  if (price >= 10000000) return `₹${(price / 10000000).toFixed(2)} Cr`;
+  if (price >= 100000) return `₹${formatNumber(price / 100000)} Lakh`;
+  return `₹${formatNumber(price)}`;
 };
 
-const CERTIFICATES_SLIDER_SETTINGS = {
-  dots: false,
-  infinite: true,
-
-  // IMPORTANT
-  speed: 8000,
-
-  slidesToShow: 5,
-  slidesToScroll: 1,
-
-  autoplay: true,
-  autoplaySpeed: 0,
-
-  cssEase: "linear",
-
-  arrows: false,
-
-
-  
-  pauseOnHover: true,
-
-  draggable: false,
-  swipe: false,
-  touchMove: false,
-
-  responsive: [
-    {
-      breakpoint: 1024,
-      settings: {
-        slidesToShow: 3
-      }
-    },
-    {
-      breakpoint: 768,
-      settings: {
-        slidesToShow: 2
-      }
-    },
-    {
-      breakpoint: 640,
-      settings: {
-        slidesToShow: 1
-      }
-    }
-  ]
-};
-// ==================== SUB-COMPONENTS ====================
-
-// Horizontal Auto-Scrolling Container Component
-
-const HorizontalScrollContainer = ({ children }) => {
-  const scrollContainerRef = React.useRef(null);
-  const [isAutoScroll, setIsAutoScroll] = useState(true);
-  const resumeTimerRef = React.useRef(null);
-
+function FeaturedProperty({ property, spotlight }) {
+  const [imageIndex, setImageIndex] = useState(0);
+  const [failedImages, setFailedImages] = useState([]);
+  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const visible = usePageVisible();
+  const images = (property.images || []).map(getImageUrl).filter(url => url && !failedImages.includes(url));
+  const photoIndex = images.length ? imageIndex % images.length : 0;
   useEffect(() => {
-    if (!scrollContainerRef.current || !isAutoScroll) return;
-
-    const scrollContainer = scrollContainerRef.current;
-    let scrollAmount = 0;
-    const scrollSpeed = 1;
-    const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
-
-    const autoScroll = setInterval(() => {
-      if (scrollAmount >= maxScroll) {
-        scrollAmount = 0;
-      }
-      scrollAmount += scrollSpeed;
-      scrollContainer.scrollLeft = scrollAmount;
-    }, 30);
-
-    return () => clearInterval(autoScroll);
-  }, [isAutoScroll]);
-
-  useEffect(() => {
-    return () => {
-      if (resumeTimerRef.current) {
-        clearTimeout(resumeTimerRef.current);
-      }
-    };
-  }, []);
-
-  const pauseAutoScroll = () => {
-    if (resumeTimerRef.current) {
-      clearTimeout(resumeTimerRef.current);
-      resumeTimerRef.current = null;
-    }
-    setIsAutoScroll(false);
-  };
-
-  const resumeAutoScroll = () => {
-    if (resumeTimerRef.current) {
-      clearTimeout(resumeTimerRef.current);
-    }
-
-    resumeTimerRef.current = setTimeout(() => {
-      setIsAutoScroll(true);
-      resumeTimerRef.current = null;
-    }, 2500);
-  };
-
+    if (images.length < 2 || paused || hovered || focused || reducedMotion || !visible) return undefined;
+    const timer = setInterval(() => setImageIndex(index => index + 1), 3000);
+    return () => clearInterval(timer);
+  }, [images.length, paused, hovered, focused, reducedMotion, visible]);
+  const rental = String(property.propertyType).toUpperCase() === 'RENT';
+  const price = rental ? property.rentalInfo?.monthlyRent || property.price : property.price;
+  const rooms = getPropertyRoomStats(property);
+  const plot = isResidentialPlot(property.propertyType, property.subcategory);
+  const bhk = [...new Set(Object.keys(property.projectPricing?.unitConfigurations || {}).map(getUnitBhk).filter(Boolean))];
+  const location = typeof property.location === 'string' ? property.location : getPropertyLocationLabel({ locality: property.location?.locality, city: property.location?.city, state: property.location?.state });
+  const areaUnit = ({ sq_ft: 'sq ft', sq_m: 'sq m', sq_yards: 'sq yd' })[property.areaUnit] || property.areaUnit || '';
   return (
-    <div
-      ref={scrollContainerRef}
-      onMouseEnter={pauseAutoScroll}
-      onMouseLeave={resumeAutoScroll}
-      onTouchStart={pauseAutoScroll}
-      onTouchEnd={resumeAutoScroll}
-      onTouchCancel={resumeAutoScroll}
-      className="flex flex-nowrap gap-6 overflow-x-auto scroll-smooth px-4 pb-4 snap-x snap-mandatory"
-      style={{
-        scrollBehavior: 'smooth',
-        WebkitOverflowScrolling: 'touch',
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-      }}
-    >
-      <style>{`
-        div:has(> div.flex-shrink-0)::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
-      {children}
-    </div>
-  );
-};
-
-// Property Card Component
-const formatPrice = (price) => {
-  const raw = price;
-  const n = Number(raw);
-
-  if (!Number.isFinite(n) || n <= 0) return 'N/A';
-
-  return n.toLocaleString('en-IN');
-};
-
-const getFeaturedCardPrice = (property) => {
-  const rentalPrice = property.rentalInfo?.monthlyRent;
-  const price = Number(property.price);
-
-  if (Number.isFinite(rentalPrice) && rentalPrice > 0) {
-    return formatPrice(rentalPrice);
-  }
-
-  if (Number.isFinite(price) && price > 0) {
-    return formatPrice(price);
-  }
-
-  return 'N/A';
-};
-
-const PropertyCardItem = ({ property }) => {
-  const roomStats = getPropertyRoomStats(property);
-  const bedrooms = roomStats.bedrooms;
-  const bathrooms = roomStats.bathrooms;
-
-  return (
-    <div className="shrink-0 w-80 snap-start">
-      <Link
-        to={`/property/${property._id}`}
-        className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition duration-300 block h-full"
-      >
-        <div className="relative h-56 overflow-hidden">
-          <img
-            src={getImageUrl(property.images?.[0]) || 'https://via.placeholder.com/400x300'}
-            alt={property.title}
-            className="w-full h-full object-cover hover:scale-110 transition duration-500"
-          />
-          <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-            Featured
-          </div>
+    <article className={`home-property-card ${spotlight ? 'home-property-spotlight' : ''}`} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+      <div className="home-property-image">
+        <Link to={`/property/${property._id || property.id}`} className="home-property-photo-link" aria-label={`View ${property.title}`}>
+          {images.length ? images.map((image, index) => <img key={image} className={`home-rotating-photo ${index === photoIndex ? 'is-active' : ''}`} src={image} alt={index === photoIndex ? property.title : ''} aria-hidden={index !== photoIndex} loading="lazy" onError={() => setFailedImages(previous => [...previous, image])} />) : <div className="home-image-placeholder"><FaBuilding aria-hidden="true" /><span>Photos coming soon</span></div>}
+        </Link>
+        {images.length > 1 && <><span className="home-photo-number">{photoIndex + 1} / {images.length}</span><button type="button" className="home-photo-pause" aria-label={paused ? `Play photos of ${property.title}` : `Pause photos of ${property.title}`} aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? <LuPlay aria-hidden="true" /> : <LuPause aria-hidden="true" />}</button></>}
+        <span className="home-property-badge">{rental ? 'For rent' : 'For sale'}</span>
+      </div>
+      <Link to={`/property/${property._id || property.id}`} className="home-property-copy">
+        <p className="home-eyebrow">{spotlight ? 'IN THE SPOTLIGHT' : 'FEATURED PROPERTY'}</p>
+        <h3>{property.title}</h3>
+        {location && <p className="home-property-location"><FaMapMarkerAlt aria-hidden="true" />{location}</p>}
+        <p className="home-property-price">{formatPrice(price)}{rental && <small> / month</small>}</p>
+        <div className="home-property-facts">
+          {!plot && (bhk.length > 0 || rooms.bedrooms > 0) && <span><FaBed aria-hidden="true" />{bhk.length ? `${bhk.join(', ')} BHK` : `${rooms.bedrooms} beds`}</span>}
+          {!plot && rooms.bathrooms > 0 && <span><FaBath aria-hidden="true" />{rooms.bathrooms} baths</span>}
+          {Number(property.area) > 0 && <span><FaRulerCombined aria-hidden="true" />{formatNumber(property.area)} {areaUnit}{plot ? ' plot' : ''}</span>}
         </div>
-
-        <div className="p-5">
-          <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
-            {property.title}
-          </h3>
-  <p className="text-xs font-semibold text-red-600 mb-2">
-            Property ID: {property.propertyId || 'N/A'}
-          </p>
-          <p className="flex items-center gap-2 text-gray-600 mb-3 text-sm">
-            <FaMapMarkerAlt className="text-red-500 flex-shrink-0" />
-            <span className="line-clamp-1">
-              {typeof property.location === 'object'
-                ? `${property.location?.city}, ${property.location?.state}`
-                : property.location}
-            </span>
-          </p>
-
-            <p className="text-2xl font-bold text-red-500 mb-4">
-            ₹{getFeaturedCardPrice(property)}
-          </p>
-
-
-          <div className="grid grid-cols-3 gap-3 text-center text-sm">
-            {typeof bedrooms === 'number' && !Number.isNaN(bedrooms) && bedrooms > 0 && (
-              <div>
-                <FaBed className="mx-auto text-red-500 mb-1" />
-                <p className="font-semibold">{bedrooms}</p>
-              </div>
-            )}
-            {typeof bathrooms === 'number' && !Number.isNaN(bathrooms) && bathrooms > 0 && (
-              <div>
-                <FaBath className="mx-auto text-blue-500 mb-1" />
-                <p className="font-semibold">{bathrooms}</p>
-              </div>
-            )}
-            <div>
-              <FaRulerCombined className="mx-auto text-amber-500 mb-1" />
-              <p className="font-semibold">{property.area}</p>
-            </div>
-          </div>
-        </div>
+        {spotlight && <p className="home-spotlight-description">{property.description || 'Explore the details and speak with our team to find out more.'}</p>}
+        <span className="home-property-link">Explore property <FaArrowRight aria-hidden="true" /></span>
       </Link>
-    </div>
+    </article>
   );
-};
+}
 
-// ...existing code...
-
-// Service Card Component
-const ServiceCard = ({ service }) => {
-  const Icon = service.icon;
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-2xl transition duration-300 text-center hover:-translate-y-2">
-      <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-        <Icon className="text-3xl text-red-500" />
-      </div>
-      <h3 className="font-bold text-gray-800 mb-2">{service.title}</h3>
-      <p className="text-sm text-gray-600">{service.description}</p>
-    </div>
-  );
-};
-
-// Certificate Card Component
-const CertificateCard = ({ certificate }) => (
-  <div className="flex items-center justify-center px-3">
-    <img
-      src={certificate.image}
-      alt={certificate.name}
-      className="w-32 h-32 rounded-full object-cover shadow-lg hover:shadow-2xl transition duration-300 hover:scale-110"
-    />
-  </div>
-);
-
-// Developer Card Component
-const DeveloperCard = ({ developer }) => (
-  <div className="px-3">
-    <div className="bg-white rounded-3xl p-10 h-48 flex items-center justify-center shadow-lg hover:shadow-xl transition">
-      <img src={developer.image} alt="Developer" className="h-24 object-contain" />
-    </div>
-  </div>
-);
-
-// Testimonial Card Component
-const TestimonialCard = ({ testimonial }) => (
-  <div className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition duration-300 border border-gray-100">
-    <div className="flex items-center gap-4 mb-6">
-      <div className="w-16 h-16 rounded-full overflow-hidden ring-4 ring-red-100 shadow-md flex-shrink-0 bg-gray-100">
-        <img
-          src={testimonial.image}
-          alt={testimonial.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div>
-        <h4 className="font-bold text-gray-900 text-lg">{testimonial.name}</h4>
-        <p className="text-sm text-gray-500">{testimonial.location}</p>
-      </div>
-    </div>
-
-    <div className="flex mb-5">
-      {[...Array(testimonial.rating)].map((_, i) => (
-        <FaStar key={i} className="text-yellow-400 mr-1" />
-      ))}
-    </div>
-
-    <p className="text-gray-600 italic leading-relaxed">"{testimonial.text}"</p>
-  </div>
-);
-
-// ==================== MAIN COMPONENT ====================
-const HomePage = () => {
+export default function HomePage() {
   const [featuredProperties, setFeaturedProperties] = useState([]);
-
-  // ==================== HOOKS ====================
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [developersPaused, setDevelopersPaused] = useState(false);
+  const retryFeatured = useCallback(() => setRetry(value => value + 1), []);
   useEffect(() => {
-    fetchFeaturedProperties();
-  }, []);
-
-  // ==================== API CALLS ====================
-  const fetchFeaturedProperties = async () => {
-    try {
-      const response = await propertyService.getFeatured();
-      const incoming = response.data.properties || [];
-
-      console.log(
-        'getFeatured() sample price payload:',
-        (incoming || []).slice(0, 5).map((p) => ({
-          _id: p?._id,
-          price: p?.price,
-          priceType: typeof p?.price
-        }))
-      );
-
-      // Dedupe to prevent the same featured property rendering twice
-      // (based on _id and then fallback to propertyId if present)
-      // Dedupe by _id first (most reliable). If _id is missing, fallback to propertyId.
-      // Also, if neither exists, keep the item.
-      const seenIds = new Set();
-      const seenPropertyIds = new Set();
-
-      const deduped = incoming.filter((p) => {
-        const id = p?._id?.toString();
-        const propertyId = p?.propertyId?.toString();
-
-        if (id) {
-          if (seenIds.has(id)) return false;
-          seenIds.add(id);
-          return true;
-        }
-
-        if (propertyId) {
-          if (seenPropertyIds.has(propertyId)) return false;
-          seenPropertyIds.add(propertyId);
-          return true;
-        }
-
+    let active = true;
+    setLoading(true);
+    setError(false);
+    propertyService.getFeatured().then(response => {
+      if (!active) return;
+      const seen = new Set();
+      setFeaturedProperties((response.data.properties || []).filter(property => {
+        const id = property._id || property.id;
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
         return true;
-      });
+      }).slice(0, 6));
+    }).catch(() => { if (active) { setError(true); setFeaturedProperties([]); } })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [retry]);
 
-      setFeaturedProperties(deduped);
-    } catch (error) {
-      console.error('Error fetching featured properties:', error);
-      setFeaturedProperties([]);
-    }
-  };
-
-  // ==================== RENDER ====================
   return (
-    <div className="bg-white">
-      {/* Hero Section */}
+    <div className="home-page">
       <HeroSection />
-
-      {/* Featured Properties Section - Auto Scrolling Carousel */}
-      <section className="py-20 bg-gradient-to-b from-slate-900 to-slate-800">
-        <Container>
-          <div className="text-center mb-14">
-            <h2 className="text-5xl font-bold text-white mb-4">Featured Properties</h2>
-            <p className="text-slate-300 text-lg">Explore our premium property collection</p>
+      <section className="home-section home-featured" aria-labelledby="home-featured-title">
+        <div className="home-shell">
+          <div className="home-section-heading">
+            <div><p className="home-eyebrow">A CLOSER LOOK</p><h2 id="home-featured-title">Your next place could be here.</h2><p>Explore our featured properties and find what feels right.</p></div>
+            <Link to="/properties" className="home-text-link">View all properties <FaArrowRight aria-hidden="true" /></Link>
           </div>
-
-          <HorizontalScrollContainer>
-            {featuredProperties.map((property) => (
-              <PropertyCardItem key={property._id || property.propertyId} property={property} />
-            ))}
-          </HorizontalScrollContainer>
-        </Container>
-      </section>
-
-      {/* Services Section */}
-      <section className="py-20 bg-gray-50">
-        <Container>
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-gray-900 mb-4">Our Services</h2>
-            <p className="text-gray-600 text-lg">Complete real estate solutions</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {SERVICES.map((service) => (
-              <ServiceCard key={service.id} service={service} />
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      {/* Certificates Section */}
-      <section className="py-16 bg-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="mb-12">
-            <p className="text-red-600 font-semibold text-sm uppercase tracking-widest mb-2">
-              Certificates & Approvals
-            </p>
-            <h2 className="text-4xl font-black text-gray-900">
-              100% Verified & Trusted Properties
-            </h2>
-          </div>
-
-          <Slider {...CERTIFICATES_SLIDER_SETTINGS}>
-            {CERTIFICATES.map((cert) => (
-              <CertificateCard key={cert.id} certificate={cert} />
-            ))}
-          </Slider>
+          {loading ? <div className="home-property-grid" role="status" aria-label="Loading featured properties">{[1, 2, 3].map(value => <div key={value} className="home-property-skeleton"><div /><span /><span /></div>)}</div>
+            : error ? <div className="home-featured-message" role="alert"><h3>We couldn’t load the featured properties.</h3><p>You can try again or browse all listings.</p><button className="home-button home-button-primary" onClick={retryFeatured}>Try again</button><Link to="/properties" className="home-text-link">Browse properties <FaArrowRight aria-hidden="true" /></Link></div>
+              : featuredProperties.length ? <div className={featuredProperties.length === 1 ? 'home-property-single' : 'home-property-grid'}>{featuredProperties.map(property => <FeaturedProperty key={property._id || property.id} property={property} spotlight={featuredProperties.length === 1} />)}</div>
+                : <div className="home-featured-message"><h3>Find a property that fits your plans.</h3><p>Browse our listings or tell our team what you’re looking for.</p><Link to="/properties" className="home-button home-button-primary">Browse properties <FaArrowRight aria-hidden="true" /></Link></div>}
         </div>
       </section>
 
-      {/* ORERA Registration Section */}
-      <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-white rounded-3xl shadow-xl border border-red-100 p-12 text-center">
-            <p className="text-red-600 font-semibold text-sm uppercase tracking-widest mb-3">
-              Our Association
-            </p>
-            <h2 className="text-4xl font-black text-gray-900 mb-8">Registered With ORERA</h2>
+      <section className="home-section home-categories" aria-labelledby="home-categories-title">
+        <div className="home-shell">
+          <div className="home-section-heading"><div><p className="home-eyebrow">A SPACE FOR EVERY PLAN</p><h2 id="home-categories-title">What are you looking for?</h2></div><Link to="/properties?type=rent" className="home-text-link">Looking to rent? <FaArrowRight aria-hidden="true" /></Link></div>
+          <div className="home-category-grid">{CATEGORIES.map(({ title, detail, icon: Icon, url }) => <Link to={url} key={title} className="home-category"><span className="home-category-icon"><Icon aria-hidden="true" /></span><h3>{title}</h3><p>{detail}</p><FaArrowRight className="home-category-arrow" aria-hidden="true" /></Link>)}</div>
+        </div>
+      </section>
 
-            <div className="w-40 h-40 mx-auto rounded-full bg-gray-50 shadow-lg flex items-center justify-center mb-6">
-              <img src="/images/orera-1.png" alt="ORERA" className="w-32 h-32 object-contain" />
-            </div>
-
-            <p className="text-gray-700 font-semibold text-lg">RERA NO. ORA/0308/2025</p>
+      <section className="home-section home-services" aria-labelledby="home-services-title">
+        <div className="home-shell">
+          <div className="home-section-heading"><div><p className="home-eyebrow">BEYOND THE PROPERTY SEARCH</p><h2 id="home-services-title">Expertise for every step.</h2><p>Complete real estate solutions under one roof.</p></div></div>
+          <div className="home-services-grid">
+            {SERVICES.map(({ id, icon: Icon, title, description }) => <article key={id} className="home-service"><div className="home-service-top"><span className="home-service-icon"><Icon aria-hidden="true" /></span><span>{String(id).padStart(2, '0')}</span></div><h3>{title}</h3><p>{description}</p><Link to="/contact" aria-label={`Discuss ${title}`}>Let’s talk <FaArrowRight aria-hidden="true" /></Link></article>)}
+            <div className="home-service-consult"><p className="home-eyebrow">YOUR TRUSTED REAL ESTATE PARTNER</p><h3>A little guidance.<br />A lot more clarity.</h3><p>From finding the right property to managing it with confidence. Tell us your plans, and we’ll help you take the next step.</p><Link to="/contact" className="home-button home-button-primary">Discuss your requirement <FaArrowRight aria-hidden="true" /></Link></div>
           </div>
         </div>
       </section>
 
-      {/* Why Choose Us Section */}
-      <section className="py-20 bg-gradient-to-r from-black to-red-500 text-white">
-        <Container>
-          <div className="text-center mb-14">
-            <h2 className="text-5xl font-bold mb-4">Why Choose Dealinee</h2>
-            <p className="text-red-100 text-lg">Trusted by thousands of customers</p>
+      <section className="home-section home-about" aria-labelledby="home-about-title">
+        <div className="home-shell home-about-grid">
+          <div className="home-about-image"><img src="/images/hero-1.jpg" width="1200" height="800" alt="Bright living space with expansive windows" loading="lazy" /></div>
+          <div className="home-about-copy"><p className="home-eyebrow">LOCAL KNOWLEDGE. PERSONAL GUIDANCE.</p><h2 id="home-about-title">Property decisions,<br />made with confidence.</h2><p>Buying, selling or renting is a big step. Our Bhubaneswar-based team helps you understand your options, coordinate visits and navigate the details.</p>
+            <ul><li><FaCheck aria-hidden="true" /> Guidance that starts with your requirements</li><li><FaCheck aria-hidden="true" /> Support with documentation and coordination</li><li><FaCheck aria-hidden="true" /> A team you can speak to, from search to next steps</li></ul>
+            <div className="home-registration"><img src="/images/orera-1.png" alt="ORERA" width="56" height="56" loading="lazy" /><div><strong>Registered with ORERA</strong><span>Registration no. ORA/0308/2025</span></div></div>
+            <Link to="/about" className="home-text-link">Meet Dealinee Estate <FaArrowRight aria-hidden="true" /></Link>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white/10 rounded-2xl p-8 text-center backdrop-blur hover:bg-white/20 transition duration-300">
-              <FaHome className="text-5xl mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-2">10K+ Properties</h3>
-              <p>Largest property database</p>
-            </div>
-
-            <div className="bg-white/10 rounded-2xl p-8 text-center backdrop-blur hover:bg-white/20 transition duration-300">
-              <FaUsers className="text-5xl mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-2">100K+ Users</h3>
-              <p>Trusted by thousands</p>
-            </div>
-
-            <div className="bg-white/10 rounded-2xl p-8 text-center backdrop-blur hover:bg-white/20 transition duration-300">
-              <FaAward className="text-5xl mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-2">Award Winning</h3>
-              <p>Industry leaders</p>
-            </div>
-
-            <div className="bg-white/10 rounded-2xl p-8 text-center backdrop-blur hover:bg-white/20 transition duration-300">
-              <FaCheckCircle className="text-5xl mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-2">24/7 Support</h3>
-              <p>Always here to help</p>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* Featured Developers Section - Auto Scrolling Carousel */}
-      <section className="py-24 bg-gradient-to-br from-slate-900 to-black overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <p className="text-red-500 font-semibold text-sm uppercase tracking-widest mb-3">
-              Trusted Partners
-            </p>
-            <h2 className="text-5xl font-black text-white mb-4">Featured Developers</h2>
-            <p className="text-gray-300 text-lg">India's leading real estate developers</p>
-          </div>
-
-          <Slider {...DEVELOPER_SLIDER_SETTINGS}>
-            {DEVELOPERS.map((developer) => (
-              <DeveloperCard key={developer.id} developer={developer} />
-            ))}
-          </Slider>
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gray-50">
-        <Container>
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-gray-900 mb-4">Customer Success Stories</h2>
-            <p className="text-gray-600 text-lg">Hear from our happy customers</p>
-          </div>
+      <section className="home-developers" aria-label="Featured developers"><div className="home-shell">
+        <div className="home-developer-heading"><div><p className="home-eyebrow">EXPLORE THE NAMES BEHIND THE HOMES</p><h2>Featured developers</h2></div><button type="button" className="home-motion-control" aria-label={developersPaused ? 'Play developer logos' : 'Pause developer logos'} aria-pressed={developersPaused} onClick={() => setDevelopersPaused(value => !value)}>{developersPaused ? <LuPlay aria-hidden="true" /> : <LuPause aria-hidden="true" />}</button></div>
+        <div className={`home-developer-window ${developersPaused ? 'is-paused' : ''}`}><div className="home-developer-track">
+          {[0, 1].map(copy => <div key={copy} className="home-developer-group" aria-hidden={copy === 1 ? true : undefined}>{[1, 2, 3, 4, 5, 6].map(value => <div className="home-developer-logo" key={value}><img src={`/images/dev${value}.png`} alt={copy === 1 ? '' : `Featured developer ${value}`} width="140" height="64" loading="lazy" /></div>)}</div>)}
+        </div></div>
+      </div></section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {TESTIMONIALS.map((testimonial) => (
-              <TestimonialCard key={testimonial.id} testimonial={testimonial} />
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      {/* Call to Action Section */}
-      <section className="py-20 bg-gradient-to-r from-black to-red-500 text-white">
-        <Container className="text-center">
-          <h2 className="text-5xl font-bold mb-6">Ready to Find Your Dream Property?</h2>
-          <p className="text-xl mb-8 text-red-100">Start your property search today</p>
-
-          <Link
-            to="/properties"
-            className="inline-flex items-center gap-3 bg-white text-red-600 px-8 py-4 rounded-xl font-bold hover:bg-gray-100 transition duration-300"
-          >
-            Explore Properties
-            <FaArrowRight />
-          </Link>
-        </Container>
-      </section>
-
-      {/* WhatsApp Floating Button */}
-      <a
-        href="https://wa.me/919776631999"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white rounded-full p-4 shadow-lg z-50 transition duration-300"
-        title="Contact us on WhatsApp"
-      >
-        <FaWhatsapp className="text-3xl" />
-      </a>
+      <section className="home-section home-contact-section" aria-labelledby="home-contact-title"><div className="home-shell"><div className="home-contact-panel"><div><p className="home-eyebrow">LET’S FIND YOUR NEXT ADDRESS</p><h2 id="home-contact-title">Your plans. Our local expertise.</h2><p>Tell us what you have in mind. We’ll help you find the way forward.</p></div><div className="home-contact-actions"><Link to="/contact" className="home-button home-button-primary">Talk to our team <FaArrowRight aria-hidden="true" /></Link><a href="tel:+919776631999"><FaPhone aria-hidden="true" /> +91 9776 631 999</a></div></div></div></section>
+      <div className="home-mobile-contact"><a href="tel:+919776631999"><FaPhone aria-hidden="true" /> Call our team</a><a href="https://wa.me/919776631999" target="_blank" rel="noopener noreferrer"><FaWhatsapp aria-hidden="true" /> WhatsApp</a></div>
     </div>
   );
-};
-
-export default HomePage;
+}

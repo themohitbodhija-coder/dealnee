@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { propertyService } from '../../services/api';
 import { FaMapMarkerAlt, FaBed, FaBath, FaRuler, FaPhone, FaEnvelope, FaArrowLeft, FaCheckCircle, FaTag, FaInfo } from 'react-icons/fa';
+import './PropertyDetailsPage.css';
 import InquiryForm from '../../components/user/InquiryForm';
 import ImageLightbox from '../../components/user/ImageLightbox';
 import { getUnitBhk, isApartmentProject } from '../../utils/projectUnits';
@@ -16,7 +17,16 @@ import {
   isPositivePlotNumber, isResidentialPlot, PLOT_DIMENSIONS, PLOT_FACILITIES, RESALE_PLOT_DIMENSIONS,
 } from '../../utils/plotDetails';
 
-const displayNumber = value => value == null || !Number.isFinite(Number(value)) ? 'N/A' : Number(value).toLocaleString();
+const displayNumber = value => value == null || !Number.isFinite(Number(value)) ? 'N/A' : Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
+const readableLabel = value => String(getDisplayLabel(value) || '').replace(/_/g, ' ').replace(/\b\w+/g, word => word[0].toUpperCase() + word.slice(1).toLowerCase());
+const compactPrice = value => {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return 'Price on request';
+  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`;
+  if (amount >= 100000) return `₹${(amount / 100000).toLocaleString('en-IN', { maximumFractionDigits: 2 })} Lakh`;
+  return `₹${displayNumber(amount)}`;
+};
 
 const PropertyDetailsPage = () => {
   const { id } = useParams();
@@ -27,10 +37,19 @@ const PropertyDetailsPage = () => {
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [showContactForm, setShowContactForm] = useState(false);
+  const inquiryDialog = useRef(null);
+  const touchStart = useRef(null);
+  useEffect(() => {
+    if (showContactForm && inquiryDialog.current && !inquiryDialog.current.open) inquiryDialog.current.showModal();
+    else if (!showContactForm && inquiryDialog.current?.open) inquiryDialog.current.close();
+  }, [showContactForm]);
   useEffect(() => {
     let active = true;
     setLoading(true);
     setProperty(null);
+    setCurrentImageIndex(0);
+    setShowLightbox(false);
+    setShowContactForm(false);
     const fetchProperty = async () => {
       try {
         const response = await propertyService.getById(id);
@@ -67,7 +86,7 @@ const PropertyDetailsPage = () => {
   }
 
   const images = property.images || [];
-  const currentImageSrc = getImageUrl(images[currentImageIndex]) || 'https://via.placeholder.com/600x400';
+  const currentImageSrc = getImageUrl(images[currentImageIndex]);
   const rentalInfo = property.rentalInfo || {};
   const projectInfo = property.newProjectInfo || {};
   const projectPricing = property.projectPricing || {};
@@ -110,131 +129,85 @@ const PropertyDetailsPage = () => {
     || [];
   const furnishingItemLabels = getFurnishingItemDisplayLabels(furnishingItemValues);
 
+  const phone = property.contact?.phone || '9776631999';
+  const email = property.contact?.email || 'dealinee0@gmail.com';
+  const phoneHref = `tel:${String(phone).replace(/[^+\d]/g, '')}`;
+  const configurations = [...new Set(Object.keys(projectPricing.unitConfigurations || {}).map(getUnitBhk).filter(Boolean))];
+  const changeImage = direction => setCurrentImageIndex(index => (index + direction + images.length) % images.length);
+
   return (
-    <div className="min-h-screen bg-gray-50 [overflow-wrap:anywhere]">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center space-x-2 text-red-600 hover:text-red-800 mb-6"
-        >
-          <FaArrowLeft /> <span>Back</span>
-        </button>
+    <div className="property-page min-h-screen bg-gray-50">
+      <div className="property-container">
+        <nav aria-label="Breadcrumb" className="property-breadcrumb">
+          <button onClick={() => navigate(-1)} className="property-back"><FaArrowLeft aria-hidden="true" /> Back</button>
+          <Link to="/properties">Properties</Link><span aria-hidden="true">/</span><span aria-current="page">{property.title}</span>
+        </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Image Gallery */}
-          <div className="min-w-0 lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <div
-                className="relative h-64 sm:h-96 bg-gray-200 cursor-pointer group"
-                onClick={() => openLightbox(currentImageIndex)}
-              >
-                <img
-                  src={currentImageSrc}
-                  alt="Property"
-                  className="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
-                />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30">
-                  <div className="text-white text-center">
-                    <p className="text-xl font-semibold">Click to view fullscreen</p>
-                    <p className="text-sm mt-2">Zoom • Pan • Download</p>
-                  </div>
-                </div>
-                {images.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded hover:bg-opacity-70"
-                    >
-                      ❮
-                    </button>
-                    <button
-                      onClick={() => setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded hover:bg-opacity-70"
-                    >
-                      ❯
-                    </button>
-                  </>
-                )}
+        <div className="property-intro">
+          <header className="property-heading">
+            <div>
+              <div className="property-badges">
+                <span>{isRentalProperty ? 'For rent' : 'For sale'}</span>
+                {projectInfo.projectStatus && <span>{readableLabel(projectInfo.projectStatus)}</span>}
               </div>
-
-              {/* Thumbnails */}
-              {images.length > 1 && (
-                <div className="flex space-x-2 p-4 bg-white overflow-x-auto">
-                  {images.map((img, idx) => (
-                    <div
-                      key={idx}
-                      className="relative cursor-pointer rounded overflow-hidden group flex-shrink-0"
-                      onClick={() => {
-                        setCurrentImageIndex(idx);
-                        openLightbox(idx);
-                      }}
-                    >
-                      <img
-                        src={getImageUrl(img) || 'https://via.placeholder.com/100x100?text=No+Image'}
-                        alt={`Thumbnail ${idx}`}
-                        className={`h-20 w-20 object-cover rounded group-hover:opacity-75 transition-opacity ${
-                          idx === currentImageIndex ? 'border-2 border-red-600' : 'opacity-50 hover:opacity-100'
-                        }`}
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-40 rounded">
-                        <span className="text-white text-xs font-semibold">View</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <h1>{property.title}</h1>
+              <p className="property-location"><FaMapMarkerAlt aria-hidden="true" />{getPropertyLocationLabel(property.location)}</p>
             </div>
+            <div className="property-heading-price">
+              <p className="property-eyebrow">{isRentalProperty ? 'Monthly rent' : showProjectDetails ? 'Starting price' : 'Price'}</p>
+              <p className="property-price">{compactPrice(property.price)}{isRentalProperty && <small> / month</small>}</p>
+              {Number(property.price) > 0 && <p className="property-full-price">₹{displayNumber(property.price)}</p>}
+              <button className="property-primary property-heading-inquiry" onClick={() => setShowContactForm(true)}>Send Inquiry <FaEnvelope aria-hidden="true" /></button>
+            </div>
+          </header>
 
-            {/* Property Details */}
-            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-8 mt-6 sm:mt-8">
-              <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-2">{property.title}</h1>
+          <section aria-label="Property photos" className={`property-gallery ${images.length < 2 ? 'property-gallery-single' : ''}`}>
+            <div className="property-gallery-main" onTouchStart={event => { touchStart.current = event.touches[0].clientX; }} onTouchEnd={event => {
+              if (touchStart.current !== null && images.length > 1) {
+                const distance = touchStart.current - event.changedTouches[0].clientX;
+                if (Math.abs(distance) > 50) changeImage(distance > 0 ? 1 : -1);
+              }
+              touchStart.current = null;
+            }}>
+              {currentImageSrc ? <button className="property-photo-button" onClick={() => openLightbox(currentImageIndex)} aria-label={`Open photo ${currentImageIndex + 1} of ${images.length}`}>
+                <img src={currentImageSrc} alt={`${property.title} — view ${currentImageIndex + 1}`} />
+              </button> : <div className="property-no-photo">Photos coming soon</div>}
+              {images.length > 1 && <>
+                <button className="property-gallery-arrow property-gallery-prev" onClick={() => changeImage(-1)} aria-label="Previous photo">❮</button>
+                <button className="property-gallery-arrow property-gallery-next" onClick={() => changeImage(1)} aria-label="Next photo">❯</button>
+              </>}
+              {images.length > 0 && <button className="property-photo-count" onClick={() => openLightbox(currentImageIndex)}>View all {images.length} photos <span aria-hidden="true">↗</span></button>}
+              {images.length > 1 && <span className="property-photo-position" aria-live="polite">{currentImageIndex + 1} / {images.length}</span>}
+            </div>
+            {images.length > 1 && <div className="property-gallery-side">
+              {images.slice(1, 3).map((image, index) => <button key={index} className="property-photo-button" onClick={() => openLightbox(index + 1)} aria-label={`Open photo ${index + 2} of ${images.length}`}>
+                <img src={getImageUrl(image)} alt={`${property.title} — view ${index + 2}`} loading="lazy" />
+              </button>)}
+            </div>}
+          </section>
+        </div>
 
-              {/* Property ID */}
-              {property.propertyId && (
-                <p className="text-sm font-semibold text-gray-500 mb-4">
-                  Property ID: <span className="text-red-600">{property.propertyId}</span>
-                </p>
-              )}
-
-              {/* Location */}
-              <div className="flex items-center text-gray-600 mb-6">
-                <FaMapMarkerAlt className="text-red-500 mr-2" />
-                <span className="text-lg">
-                  {getPropertyLocationLabel(property.location)}
-                </span>
-              </div>
-
-              {/* Price */}
-              <div className="text-2xl sm:text-4xl font-bold text-red-600 mb-6">₹{isPlot ? Number(property.price).toLocaleString('en-IN') : displayNumber(property.price)}</div>
-
-              {/* Features */}
-              <div className="grid grid-cols-3 gap-4 mb-8 pb-8 border-b">
-                {typeof bedrooms === 'number' && !Number.isNaN(bedrooms) && bedrooms > 0 && (
-                  <div className="text-center">
-                    <FaBed className="text-3xl text-red-600 mx-auto mb-2" />
-                    <p className="text-gray-600">{bedrooms} Bedrooms</p>
-                  </div>
-                )}
-                {typeof bathrooms === 'number' && !Number.isNaN(bathrooms) && bathrooms > 0 && (
-                  <div className="text-center">
-                    <FaBath className="text-3xl text-red-600 mx-auto mb-2" />
-                    <p className="text-gray-600">{bathrooms} Bathrooms</p>
-                  </div>
-                )}
-                {(isPlot ? plotArea : property.area) > 0 && (
-                  <div className="text-center">
-                    <FaRuler className="text-3xl text-red-600 mx-auto mb-2" />
-                    <p className="text-gray-600">
-                      {isPlot ? `Plot Area: ${plotArea} ${areaUnit}` : `Built-up Area: ${property.area} ${property.areaUnit}`}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Rental Information - MOVED TO TOP */}
+        <div className="property-content-grid">
+          <div className="min-w-0">
+            <section className="property-facts" aria-label="Key property facts">
+              {!isPlot && configurations.length > 0 ? <div><FaBed aria-hidden="true" /><p><strong>{configurations.join(', ')} BHK</strong><span>Configuration</span></p></div> : !isPlot && typeof bedrooms === 'number' && bedrooms > 0 && <div><FaBed aria-hidden="true" /><p><strong>{bedrooms} Bedrooms</strong><span>Bedrooms</span></p></div>}
+              {!isPlot && typeof bathrooms === 'number' && bathrooms > 0 && <div><FaBath aria-hidden="true" /><p><strong>{bathrooms} Bathrooms</strong><span>Bathrooms</span></p></div>}
+              {(isPlot ? plotArea : property.area) > 0 && <div><FaRuler aria-hidden="true" /><p><strong>{displayNumber(isPlot ? plotArea : property.area)} {areaUnit}</strong><span>{isPlot ? 'Plot area' : showProjectDetails && isApartmentProject(property.subcategory) ? 'Super built-up area' : 'Built-up area'}</span></p></div>}
+            </section>
+            <nav className="property-section-nav" aria-label="Property sections">
+              <a href="#property-overview">Overview</a>
+              {showProjectDetails && <a href="#property-project">Project & units</a>}
+              {amenities.length > 0 && <a href="#property-amenities">Amenities</a>}
+              <a href="#property-information">Details</a>
+            </nav>
+            <div className="property-details-body bg-white">
+              <section id="property-overview" className="property-overview">
+                <h2>About this property</h2>
+                <p>{property.description || 'Contact our team for more information about this property.'}</p>
+              </section>
+              {/* Rental information */}
               {showRentalDetails && (
-                <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-8">
+                <div className="property-detail-section">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                     <FaTag className="text-red-600 mr-2" /> Rental Details
                   </h2>
@@ -301,9 +274,9 @@ const PropertyDetailsPage = () => {
 
               {/* New Project Information */}
               {showProjectDetails && (
-                <div className="bg-indigo-50 rounded-lg p-4 sm:p-6 mb-8 border border-indigo-200">
+                <div id="property-project" className="property-detail-section">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                    <FaInfo className="text-indigo-600 mr-2" /> Project Details
+                    <FaInfo className="text-red-600 mr-2" /> Project Details
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                     {property.propertyType === 'BUY' && property.subcategory === 'NEW_PROJECT_PLOT' && (
@@ -333,7 +306,7 @@ const PropertyDetailsPage = () => {
                     {projectInfo.projectStatus && (
                       <div>
                         <p className="text-gray-600 text-sm">Project Status</p>
-                        <p className="text-gray-800 font-semibold">{getDisplayLabel(projectInfo.projectStatus)}</p>
+                        <p className="text-gray-800 font-semibold">{readableLabel(projectInfo.projectStatus)}</p>
                       </div>
                     )}
                     {projectInfo.approval && (
@@ -355,10 +328,10 @@ const PropertyDetailsPage = () => {
                       </div>
                     )}
                     {Object.entries(projectPricing.unitConfigurations || {}).map(([code, unit], index) => (
-                      <div key={code} className="min-w-0 sm:col-span-2 md:col-span-1 border rounded-lg p-3">
+                      <div key={code} className="min-w-0 col-span-2 border rounded-lg p-4 bg-gray-50">
                         <h3 className="font-semibold mb-2">Unit {index + 1} · {getUnitBhk(code)} BHK</h3>
                         {[...(!isApartmentProject(property.subcategory) ? [['landArea', 'Land Area']] : []), ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['superBuildUpArea', 'Super Built-up Area'], ['carpetArea', 'Carpet Area'], ['price', 'Price']].map(([field, label]) => unit[field] != null && unit[field] !== '' && (
-                          <p key={field} className="text-sm"><span className="text-gray-600">{label}: </span>{field === 'price' ? `₹${displayNumber(unit[field])}` : `${unit[field]}${field.includes('Area') ? ` ${property.areaUnit?.replace(/_/g, ' ') || ''}` : ''}`}</p>
+                          <p key={field} className="text-sm"><span className="text-gray-600">{label}: </span>{field === 'price' ? `₹${displayNumber(unit[field])}` : `${displayNumber(unit[field])}${field.includes('Area') ? ` ${areaUnit || ''}` : ''}`}</p>
                         ))}
                       </div>
                     ))}
@@ -377,7 +350,7 @@ const PropertyDetailsPage = () => {
                     {projectPricing.pricePerSqft && (
                       <div>
                         <p className="text-gray-600 text-sm">Price Per Sq.Ft</p>
-                        <p className="text-gray-800 font-semibold">₹{displayNumber(projectPricing.pricePerSqft)}</p>
+                        <p className="text-gray-800 font-semibold">₹{displayNumber(projectPricing.pricePerSqft)}</p><p className="text-xs text-gray-500 mt-1">Area basis not specified; confirm with agent.</p>
                       </div>
                     )}
                   </div>
@@ -386,7 +359,7 @@ const PropertyDetailsPage = () => {
 
               {/* Resale Information */}
               {showResaleDetails && (
-                <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-8">
+                <div className="property-detail-section">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                     <FaTag className="text-red-600 mr-2" /> Resale Details
                   </h2>
@@ -485,9 +458,9 @@ const PropertyDetailsPage = () => {
                 </div>
               )}
 
-              {/* Commercial Information - MOVED TO TOP */}
+              {/* Commercial information */}
               {property.commercialDetails && property.propertyType === 'COMMERCIAL' && (
-                <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-8">
+                <div className="property-detail-section">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
                     <FaTag className="text-red-600 mr-2" /> Commercial Details
                   </h2>
@@ -498,7 +471,7 @@ const PropertyDetailsPage = () => {
                         {['builtUpArea', 'carpetArea'].map((field) => property.commercialDetails[field] != null && (
                           <div key={field}>
                             <p className="text-gray-600 text-sm">{field === 'builtUpArea' ? 'Built-up Area' : 'Carpet Area'}</p>
-                            <p className="text-gray-800 font-semibold">{property.commercialDetails[field]} {property.areaUnit || 'sq_ft'}</p>
+                            <p className="text-gray-800 font-semibold">{displayNumber(property.commercialDetails[field])} {areaUnit || 'sq ft'}</p>
                           </div>
                         ))}
                         {property.commercialDetails.parkingAvailability != null && (
@@ -564,13 +537,14 @@ const PropertyDetailsPage = () => {
                 </div>
               )}
 
-              {/* Property Metadata - MOVED TO TOP */}
-              <div className="bg-blue-50 rounded-lg p-4 sm:p-6 mb-8">
+              {/* Property metadata */}
+              <div id="property-information" className="property-detail-section">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Property Information</h2>
+                {property.propertyId && <p className="text-sm text-gray-500 mb-4">Property ID: {property.propertyId}</p>}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
                   <div>
                     <p className="text-gray-600 text-sm">Property Type</p>
-                    <p className="text-gray-800 font-semibold">{property.propertyType}</p>
+                    <p className="text-gray-800 font-semibold">{getDisplayLabel(property.propertyType)}</p>
                   </div>
                   {property.status && (
                     <div>
@@ -595,15 +569,9 @@ const PropertyDetailsPage = () => {
                 </div>
               </div>
 
-              {/* Description */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Description</h2>
-                <p className="text-gray-600 leading-relaxed">{property.description}</p>
-              </div>
-
               {/* Amenities */}
               {amenities.length > 0 && (
-                <div className="mb-8">
+                <div id="property-amenities" className="mb-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
                     <FaCheckCircle className="text-red-600 mr-2" /> Amenities
                   </h2>
@@ -614,7 +582,7 @@ const PropertyDetailsPage = () => {
                         <span>
                           <AmenityIcons id={amenity} />
                         </span>
-                        <span>{PREMIUM_AMENITY_LABELS.get(amenity) ?? amenity}</span>
+                        <span>{PREMIUM_AMENITY_LABELS.get(amenity) ?? readableLabel(amenity)}</span>
                       </div>
                     ))}
                   </div>
@@ -670,7 +638,7 @@ const PropertyDetailsPage = () => {
                     {outdoorFeatures.map((feature, idx) => (
                       <div key={idx} className="flex items-center space-x-2 text-gray-700">
                         <span className="text-purple-600">★</span>
-                        <span>{feature}</span>
+                        <span>{readableLabel(feature)}</span>
                       </div>
                     ))}
                   </div>
@@ -679,39 +647,31 @@ const PropertyDetailsPage = () => {
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="min-w-0">
-            {/* Contact Card */}
-            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-8">
-              <h3 className="text-xl font-bold text-gray-800 mb-6">Contact Agent</h3>
-
-              <div className="mb-6 pb-6 border-b">
-                <p className="text-gray-700 font-semibold mb-2">{property.contact?.name}</p>
-                <div className="flex items-center space-x-2 text-gray-600 mb-2">
-                  <FaPhone className="text-red-600" />
-                  <span>{property.contact?.phone || '9776631999'}</span>
-                </div>
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <FaEnvelope className="text-red-600" />
-                  <span>{property.contact?.email || 'dealinee0@gmail.com'}</span>
-                </div>
+          <aside className="property-sidebar" aria-label="Contact agent">
+            <div className="property-contact-card">
+              <p className="property-eyebrow">{isRentalProperty ? 'Monthly rent' : showProjectDetails ? 'Starting price' : 'Asking price'}</p>
+              <p className="property-price">{compactPrice(property.price)}{isRentalProperty && <small> / month</small>}</p>
+              {Number(property.price) > 0 && <p className="property-full-price">₹{displayNumber(property.price)}</p>}
+              <div className="property-agent">
+                <span className="property-agent-icon"><FaPhone aria-hidden="true" /></span>
+                <div><h2>{property.contact?.name || 'Dealinee Estate'}</h2><p>Contact our property team</p></div>
               </div>
-
-              <button
-                onClick={() => setShowContactForm(!showContactForm)}
-                className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold mb-4"
-              >
-                {showContactForm ? 'Cancel' : 'Send Inquiry'}
-              </button>
-
-              {/* Contact Form */}
-              {showContactForm && (
-                <InquiryForm key={id} propertyId={id} submitLabel="Submit Inquiry" />
-              )}
+              <button onClick={() => setShowContactForm(true)} className="property-primary">Send Inquiry <FaEnvelope aria-hidden="true" /></button>
+              <a href={phoneHref} className="property-secondary"><FaPhone aria-hidden="true" /> Call {phone}</a>
+              <a className="property-email" href={`mailto:${email}`}>{email}</a>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
+
+      <div className="property-mobile-contact" aria-label="Property contact actions">
+        <a href={phoneHref} className="property-secondary"><FaPhone aria-hidden="true" /> Call</a>
+        <button className="property-primary" onClick={() => setShowContactForm(true)}>Send Inquiry <FaEnvelope aria-hidden="true" /></button>
+      </div>
+      <dialog ref={inquiryDialog} className="property-inquiry-dialog" aria-labelledby="property-inquiry-title" onCancel={() => setShowContactForm(false)} onClose={() => setShowContactForm(false)}>
+        <div className="property-dialog-header"><div><p className="property-eyebrow">{property.title}</p><h2 id="property-inquiry-title">Enquire about this property</h2></div><button onClick={() => setShowContactForm(false)} aria-label="Close inquiry">×</button></div>
+        {showContactForm && <InquiryForm key={id} propertyId={id} submitLabel="Submit Inquiry" />}
+      </dialog>
 
       {/* Image Lightbox */}
       {showLightbox && images.length > 0 && (

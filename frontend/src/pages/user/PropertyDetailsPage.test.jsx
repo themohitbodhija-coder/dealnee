@@ -52,7 +52,7 @@ test.each([
         <Routes><Route path="/property/:id" element={<PropertyDetailsPage />} /></Routes>
       </MemoryRouter>
     ));
-    expect(container.textContent).toContain('Plot Area: 1200 sq ft');
+    expect(container.querySelector('[aria-label="Key property facts"]').textContent).toContain('1,200 sq ftPlot area');
     expect(container.textContent).toContain('₹30,00,000');
     expect(container.textContent).toContain('Frontage (ft)');
     expect(container.textContent).toContain('Electrification');
@@ -62,5 +62,51 @@ test.each([
   } finally {
     await act(async () => root.unmount());
     global.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
+  }
+});
+
+test('formats project facts, changes gallery images without opening the lightbox, and opens an accessible inquiry dialog', async () => {
+  const previous = global.IS_REACT_ACT_ENVIRONMENT;
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const originalShow = HTMLDialogElement.prototype.showModal;
+  const originalClose = HTMLDialogElement.prototype.close;
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () { this.open = false; };
+  const container = document.createElement('div');
+  const root = createRoot(container);
+  propertyService.getById.mockResolvedValue({ data: { property: {
+    title: 'DN Kings Land', propertyType: 'BUY', subcategory: 'NEW_PROJECT_APARTMENT',
+    price: 56000000, area: '4070.0000', areaUnit: 'sq_ft', images: ['/one.jpg', '/two.jpg', '/three.jpg'],
+    amenities: ['swimming_pool'], newProjectInfo: { projectStatus: 'UNDER_CONSTRUCTION' },
+    projectPricing: { unitConfigurations: { bhk4p5: { bedrooms: 4, bathrooms: 4, superBuildUpArea: '4070.0000', carpetArea: '2120.0000' } } },
+    contact: { phone: '+91 99999 99999' },
+  } } });
+  try {
+    await act(async () => root.render(
+      <MemoryRouter initialEntries={['/property/project']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes><Route path="/property/:id" element={<PropertyDetailsPage />} /></Routes>
+      </MemoryRouter>
+    ));
+    const facts = container.querySelector('[aria-label="Key property facts"]');
+    expect(facts.textContent).toContain('4.5 BHK');
+    expect(facts.textContent).toContain('4,070 sq ftSuper built-up area');
+    expect(container.textContent).toContain('₹5.60 Cr');
+    expect(container.textContent).toContain('Under Construction');
+    expect(container.textContent).not.toMatch(/4070\.0000|UNDER_CONSTRUCTION|swimming_pool/);
+    expect(container.querySelector('.property-mobile-contact a').getAttribute('href')).toBe('tel:+919999999999');
+    act(() => container.querySelector('[aria-label="Next photo"]').click());
+    expect(container.querySelector('.property-gallery-main img').getAttribute('src')).toContain('/two.jpg');
+    expect(container.querySelector('.property-photo-position').textContent).toBe('2 / 3');
+    expect(container.querySelector('.property-page > .fixed')).toBeNull();
+    act(() => container.querySelector('.property-mobile-contact button').click());
+    expect(container.querySelector('dialog').open).toBe(true);
+    expect(container.querySelector('form[aria-label="Inquiry form"]')).not.toBeNull();
+    act(() => container.querySelector('[aria-label="Close inquiry"]').click());
+    expect(container.querySelector('dialog').open).toBe(false);
+  } finally {
+    act(() => root.unmount());
+    HTMLDialogElement.prototype.showModal = originalShow;
+    HTMLDialogElement.prototype.close = originalClose;
+    global.IS_REACT_ACT_ENVIRONMENT = previous;
   }
 });

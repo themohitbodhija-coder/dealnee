@@ -1,148 +1,23 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowRight, FaEnvelope, FaPhone } from 'react-icons/fa';
-import Container from '../../components/common/Container';
+import { LuArrowRight, LuMail, LuPhone, LuMessagesSquare, LuLightbulb, LuShieldCheck, LuUsers, LuBadgeCheck, LuTrendingUp, LuMapPin } from 'react-icons/lu';
+import PublicPageLayout, { PageHero, IconCard } from '../../components/user/PublicPageLayout';
 
-const CarrierPage = () => {
-  return (
-    <div className="min-h-screen bg-white overflow-hidden">
-      {/* HERO SECTION */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-red-700 to-red-600 text-white">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/5 rounded-full blur-3xl" />
-
-        <Container className="relative py-24 md:py-32">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
-              Join Our Team
-            </h1>
-            <p className="text-lg md:text-xl text-red-100 mb-8 leading-relaxed">
-              We're building the future of real estate with innovation, transparency, and integrity. 
-              Help us transform how people buy, sell, and invest in properties.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="#contact"
-                className="inline-flex items-center justify-center gap-2 bg-white text-red-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
-              >
-                Get In Touch
-                <FaArrowRight />
-              </a>
-              <Link
-                to="/properties"
-                className="inline-flex items-center justify-center gap-2 border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition"
-              >
-                Explore Our Platform
-              </Link>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* ABOUT US SECTION */}
-      <section className="py-20 bg-white">
-        <Container>
-          <div className="max-w-3xl mx-auto text-center md:text-left">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">About Working at Dealinee</h2>
-            <p className="text-lg text-gray-700 mb-6 leading-relaxed">
-              At Dealinee, we believe in building a product that our team genuinely believes in. We're a collaborative, 
-              innovative team dedicated to creating transparent and user-friendly real estate solutions.
-            </p>
-            <p className="text-lg text-gray-700 leading-relaxed">
-              We value quality over speed, integrity over shortcuts, and growth over comfort. 
-              If you're passionate about technology and want to make a real impact, we'd love to hear from you.
-            </p>
-          </div>
-        </Container>
-      </section>
-
-      {/* VALUES SECTION */}
-      <section className="py-20 bg-gray-50">
-        <Container>
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-12 text-center">Our Values</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Transparency',
-                desc: 'We believe in open communication and honest practices in everything we do.'
-              },
-              {
-                title: 'Innovation',
-                desc: 'We continuously seek better ways to solve problems and improve user experiences.'
-              },
-              {
-                title: 'Integrity',
-                desc: 'We take responsibility and maintain high ethical standards in all our decisions.'
-              },
-              {
-                title: 'Collaboration',
-                desc: 'We work together as a team, valuing diverse perspectives and ideas.'
-              },
-              {
-                title: 'Excellence',
-                desc: 'We strive for quality in every aspect of our work and products.'
-              },
-              {
-                title: 'Growth',
-                desc: 'We invest in our people and believe in continuous learning and development.'
-              }
-            ].map((value, idx) => (
-              <div key={idx} className="bg-white rounded-lg p-8 border border-gray-200 hover:shadow-md transition">
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{value.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{value.desc}</p>
-              </div>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      
-    
-
-      {/* CTA SECTION */}
-      <section id="contact" className="py-20 bg-white">
-        <Container>
-          <div className="bg-gradient-to-r from-slate-900 to-red-600 rounded-2xl p-12 md:p-16 text-white">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Make an Impact?</h2>
-            <p className="text-lg text-red-100 mb-10 leading-relaxed">
-              We're always looking for talented individuals to join our growing team. 
-              Whether you have a specific role in mind or just want to explore opportunities, 
-              we'd love to connect with you.
-            </p>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <FaEnvelope className="text-xl" />
-                <span className="text-lg">careers@dealinee.com</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <FaPhone className="text-xl" />
-                <span className="text-lg">+91 9776631999</span>
-              </div>
-            </div>
-            <div className="mt-10">
-              <Link
-                to="/contact"
-                className="inline-flex items-center justify-center gap-2 bg-white text-red-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
-              >
-                Send us a Message
-                <FaArrowRight />
-              </Link>
-            </div>
-          </div>
-        </Container>
-      </section>
-
-      {/* SIMPLE FOOTER TEXT */}
-      <section className="py-12 bg-gray-50 border-t border-gray-200">
-        <Container className="text-center">
-          <p className="text-gray-600">
-            Thank you for your interest in Dealinee. We review every application carefully 
-            and will get back to you soon.
-          </p>
-        </Container>
-      </section>
-    </div>
-  );
-};
-
-export default CarrierPage;
+const values = [
+  [LuMessagesSquare, 'Transparency', 'We believe in open communication and honest practices in everything we do.'],
+  [LuLightbulb, 'Innovation', 'We keep looking for better ways to solve problems and improve the client experience.'],
+  [LuShieldCheck, 'Integrity', 'We take responsibility for our work and bring care to every decision.'],
+  [LuUsers, 'Collaboration', 'We work together, listen to different perspectives and share what we know.'],
+  [LuBadgeCheck, 'Excellence', 'We put quality and thoughtful service at the centre of our work.'],
+  [LuTrendingUp, 'Growth', 'We believe in continuous learning and growing together as a team.'],
+];
+export default function CarrierPage() {
+  return <PublicPageLayout className="site-careers">
+    <PageHero page="Careers" eyebrow="BUILD YOUR NEXT CHAPTER WITH US" title={<>Good people.<br /><em>Meaningful work.</em></>} description="Help people find the spaces that shape their lives. Bring your ideas, curiosity and commitment to a team that values thoughtful work." media={<aside className="site-career-intro"><span className="site-icon"><LuUsers aria-hidden="true" /></span><h2>A team built on<br />shared purpose.</h2><p>Local knowledge. Open conversations. A commitment to doing things well.</p><div><LuMapPin aria-hidden="true" /><span>Bhubaneswar, Odisha</span></div><Link className="site-text-link" to="/about">Meet Dealinee<LuArrowRight aria-hidden="true" /></Link></aside>}>
+      <a href="#career-contact" className="site-button site-button-primary">Introduce yourself<LuArrowRight aria-hidden="true" /></a><Link to="/about" className="site-text-link">Get to know us<LuArrowRight aria-hidden="true" /></Link>
+    </PageHero>
+    <section className="site-section site-story"><div className="site-shell site-story-grid"><div><p className="site-eyebrow">WORKING AT DEALINEE</p><h2>Your perspective<br />can make a difference.</h2></div><div className="site-prose"><p>We’re a collaborative team dedicated to making real estate simpler, more transparent and easier to navigate. Our work brings together people, property and practical problem-solving.</p><p>We value quality, integrity and a willingness to learn. If you care about the work you do and the people you do it for, we’d love to hear from you.</p></div></div></section>
+    <section className="site-section site-muted"><div className="site-shell"><div className="site-section-heading"><p className="site-eyebrow">WHAT GUIDES OUR WORK</p><h2>Shared values. Everyday actions.</h2><p>These principles shape how we support our clients and each other.</p></div><div className="site-card-grid">{values.map(([Icon, title, description]) => <IconCard key={title} icon={Icon} title={title}>{description}</IconCard>)}</div></div></section>
+    <section id="career-contact" className="site-section"><div className="site-shell site-career-contact-grid"><div><p className="site-eyebrow">LET’S START A CONVERSATION</p><h2>Tell us where<br />you’d like to grow.</h2><p className="site-body-copy">Have a role in mind or want to explore working with us? Email your CV and a short introduction, including the kind of work you’re interested in.</p><a className="site-button site-button-primary" href="mailto:careers@dealinee.com?subject=Career%20enquiry%20at%20Dealinee">Email your introduction<LuArrowRight aria-hidden="true" /></a></div><div className="site-career-contact-card"><h3>Connect with our team</h3><a href="mailto:careers@dealinee.com"><span className="site-icon"><LuMail aria-hidden="true" /></span><span><small>Careers email</small>careers@dealinee.com</span><LuArrowRight aria-hidden="true" /></a><a href="tel:+919776631999"><span className="site-icon"><LuPhone aria-hidden="true" /></span><span><small>Call us</small>+91 9776 631 999</span><LuArrowRight aria-hidden="true" /></a><p>Prefer to send a general enquiry?</p><Link to="/contact" className="site-text-link">Contact us<LuArrowRight aria-hidden="true" /></Link></div></div></section>
+  </PublicPageLayout>;
+}
