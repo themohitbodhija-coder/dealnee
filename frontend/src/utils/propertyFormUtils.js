@@ -268,7 +268,7 @@ export const getFormProgress = (formData) => {
   try {
     // Check basic info
     if (
-      formData.basicInfo?.title?.trim() &&
+      (isApartmentProject(formData.basicInfo?.subcategory) || formData.basicInfo?.title?.trim()) &&
       formData.basicInfo?.propertyType
     ) {
       completedSections++;
@@ -303,7 +303,7 @@ export const getFormProgress = (formData) => {
     }
 
     // Review is always accessible
-    if (formData.basicInfo?.title) {
+    if (isApartmentProject(formData.basicInfo?.subcategory) || formData.basicInfo?.title) {
       completedSections++;
     }
   } catch (error) {
@@ -439,7 +439,9 @@ export const transformFormDataForSubmission = (formData, userId) => {
     const submissionData = {
       // Basic Info
       propertyId: (basicInfo.propertyId ?? '').trim(),
-      title: (basicInfo.title ?? '').trim(),
+      title: (isApartmentProject(basicInfo.subcategory)
+        ? (formData.newProjectInfo?.projectName || basicInfo.title || '')
+        : (basicInfo.title ?? '')).trim(),
       description: (basicInfo.description ?? '').trim(),
       propertyType: basicInfo.propertyType || null,
       category: basicInfo.category || null,
@@ -687,6 +689,35 @@ export const formatPrice = (price) => {
     return `${(num / 100000).toFixed(1)} Lakh`;
   }
   return `₹${num.toLocaleString('en-IN')}`;
+};
+
+/**
+ * Format price in Indian numbering words (Crore, Lakh, Thousand, Hundred)
+ * e.g., 328900000 -> "32 Crore 89 Lakh"
+ */
+export const formatIndianNumberWords = (value) => {
+  if (value === null || value === undefined || value === '') return '';
+  const cleanStr = String(value).replace(/,/g, '').trim();
+  const num = Math.floor(Number(cleanStr));
+  if (isNaN(num) || num <= 0) return '';
+
+  const crore = Math.floor(num / 10000000);
+  const remCrore = num % 10000000;
+  const lakh = Math.floor(remCrore / 100000);
+  const remLakh = remCrore % 100000;
+  const thousand = Math.floor(remLakh / 1000);
+  const remThousand = remLakh % 1000;
+  const hundred = Math.floor(remThousand / 100);
+  const remHundred = remThousand % 100;
+
+  const parts = [];
+  if (crore > 0) parts.push(`${crore} Crore`);
+  if (lakh > 0) parts.push(`${lakh} Lakh`);
+  if (thousand > 0) parts.push(`${thousand} Thousand`);
+  if (hundred > 0) parts.push(`${hundred} Hundred`);
+  if (remHundred > 0) parts.push(`${remHundred}`);
+
+  return parts.join(' ');
 };
 
 /**

@@ -8,6 +8,7 @@ import {
 } from '../../../constants/propertyConstants';
 import { createFieldUpdateAction } from '../../../reducers/propertyFormReducer';
 import { generateSequentialPropertyId } from '../../../utils/propertyIdGenerator';
+import { isApartmentProject } from '../../../utils/projectUnits';
 import { propertyService } from '../../../services/api';
 
 const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) => {
@@ -306,22 +307,24 @@ const BasicInfoStep = ({ formData, dispatch, errors = {}, isEditMode = false }) 
         {errors.propertyId && <p className="text-red-500 text-xs mt-1">{errors.propertyId}</p>}
       </div>
 
-      {/* Title */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Property Title
-        </label>
-        <input
-          type="text"
-          value={formData.basicInfo.title}
-          onChange={handleTitleChange}
-          placeholder="e.g., Modern 3 BHK Apartment in Downtown"
-          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.title ? 'border-red-500' : 'border-gray-300'
-          }`}
-        />
-        {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
-      </div>
+      {/* Title - not shown for New Project Apartment as Project Name is used */}
+      {!isApartmentProject(formData.basicInfo.subcategory) && (
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Property Title
+          </label>
+          <input
+            type="text"
+            value={formData.basicInfo.title}
+            onChange={handleTitleChange}
+            placeholder="e.g., Modern 3 BHK Apartment in Downtown"
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              errors.title ? 'border-red-500' : 'border-gray-300'
+            }`}
+          />
+          {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
+        </div>
+      )}
 
       {/* Description */}
       <div>

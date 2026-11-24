@@ -98,11 +98,13 @@ const ReviewStep = ({ formData, onEdit }) => {
         />
         {expandedSections.basicInfo && (
           <div className="p-4 space-y-3">
-            <DetailRow
-              label="Title"
-              value={formData.basicInfo.title}
-              editSection="basic_info"
-            />
+            {!isApartment && (
+              <DetailRow
+                label="Title"
+                value={formData.basicInfo.title}
+                editSection="basic_info"
+              />
+            )}
             <DetailRow
               label="Description"
               value={
@@ -318,6 +320,8 @@ const ReviewStep = ({ formData, onEdit }) => {
       {basicInfo.subcategory?.startsWith('NEW_PROJECT_') && (
         <div className="bg-white border rounded-lg p-4 space-y-3">
           <h3 className="text-lg font-semibold">Project Information &amp; Units</h3>
+          {newProjectInfo?.projectName && <DetailRow label="Project Name" value={newProjectInfo.projectName} editSection="project_details" />}
+          {newProjectInfo?.builderName && <DetailRow label="Builder Name" value={newProjectInfo.builderName} editSection="project_details" />}
           <DetailRow label="Total Units" value={newProjectInfo?.totalUnits} editSection="project_details" />
           <DetailRow label="Total Project Area" value={formatArea(newProjectInfo?.totalProjectArea, newProjectInfo?.totalProjectAreaUnit)} editSection="project_details" />
           {Object.entries(formData.projectPricing?.unitConfigurations || {}).filter(([, unit]) => unit && Object.values(unit).some(value => value !== '' && value != null)).map(([code, unit], index) => (

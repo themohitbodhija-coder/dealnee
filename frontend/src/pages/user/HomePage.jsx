@@ -2,20 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { propertyService } from '../../services/api';
 import HeroSection from '../../components/user/HeroSection';
+import CountUpNumber from '../../components/user/CountUpNumber';
 import { getImageUrl } from '../../utils/imageUrl';
-import { getPropertyRoomStats, getPropertyLocationLabel } from '../../utils/propertyFormUtils';
-import { getUnitBhk } from '../../utils/projectUnits';
-import { isResidentialPlot } from '../../utils/plotDetails';
 import {
-  LuArrowRight as FaArrowRight, LuMapPin as FaMapMarkerAlt, LuBedDouble as FaBed,
-  LuBath as FaBath, LuRuler as FaRulerCombined, LuLandmark as FaHandHoldingUsd,
-  LuWallet as FaMoneyBillWave, LuGlobe2 as FaGlobeAmericas, LuArrowLeftRight as FaExchangeAlt,
-  LuFileCheck2 as FaFileContract, LuTrendingUp as FaChartLine, LuHome as FaHome,
-  LuBuilding2 as FaBuilding, LuTrees as FaTree, LuBriefcase as FaBriefcase,
-  LuPhone as FaPhone, LuCheck as FaCheck,
+  LuArrowRight as FaArrowRight, LuMapPin as FaMapMarkerAlt,
+  LuLandmark as FaHandHoldingUsd, LuWallet as FaMoneyBillWave,
+  LuGlobe2 as FaGlobeAmericas, LuArrowLeftRight as FaExchangeAlt,
+  LuFileCheck2 as FaFileContract, LuTrendingUp as FaChartLine,
+  LuHome as FaHome, LuBuilding2 as FaBuilding, LuTrees as FaTree,
+  LuBriefcase as FaBriefcase, LuPhone as FaPhone, LuCheck as FaCheck,
 } from 'react-icons/lu';
 import { FaWhatsapp } from 'react-icons/fa';
-import { useMediaQuery, usePageVisible } from '../../hooks/useMediaPreferences';
+import { usePageVisible } from '../../hooks/useMediaPreferences';
 import './HomePage.css';
 import { getWhatsAppUrl } from '../../utils/whatsapp';
 
@@ -64,13 +62,48 @@ const SERVICES = [
   }
 ];
 
-
 const CATEGORIES = [
   { title: 'Apartments', detail: 'A home above the everyday', icon: FaBuilding, url: '/properties?type=buy&subtype=newprojects&category=apartment' },
   { title: 'Villas', detail: 'More room to make your own', icon: FaHome, url: '/properties?type=buy&subtype=newprojects&category=villa' },
   { title: 'Plots & land', detail: 'Build your own beginning', icon: FaTree, url: '/properties?type=buy&subtype=newprojects&category=plot' },
   { title: 'Commercial', detail: 'Space for your next ambition', icon: FaBriefcase, url: '/properties?type=commercial' },
 ];
+
+const SHOWCASE_PROJECTS = [
+  {
+    id: 'project-dn-pallaciya',
+    title: 'DN Pallaciya',
+    area: 'Sundarpur',
+    price: 'From ₹1.60 Cr*',
+    image: '/images/projects/dn-pallaciya.jpg',
+    url: '/properties?search=DN+Pallaciya'
+  },
+  {
+    id: 'project-one-world',
+    title: 'One World',
+    area: 'Patia',
+    price: 'From ₹1.85 Cr*',
+    image: '/images/projects/one-world.jpg',
+    url: '/properties?search=One+World'
+  },
+  {
+    id: 'project-urban-majestic',
+    title: 'Urban Majestic',
+    area: 'Raghunathpur',
+    price: 'From ₹2.25 Cr*',
+    image: '/images/projects/urban-majestic.jpg',
+    url: '/properties?search=Urban+Majestic'
+  },
+  {
+    id: 'project-adpl-galaxy-3',
+    title: 'ADPL Galaxy 3',
+    area: 'Kalinga Nagar',
+    price: 'From ₹82 Lakh*',
+    image: '/images/projects/adpl-galaxy-3.jpg',
+    url: '/properties?search=ADPL+Galaxy+3'
+  }
+];
+
 const formatNumber = value => Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 const formatPrice = value => {
   const price = Number(value);
@@ -80,46 +113,32 @@ const formatPrice = value => {
   return `₹${formatNumber(price)}`;
 };
 
-function FeaturedProperty({ property, spotlight }) {
-  const [imageIndex, setImageIndex] = useState(0);
-  const [failedImages, setFailedImages] = useState([]);
-  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const visible = usePageVisible();
-  const images = (property.images || []).map(getImageUrl).filter(url => url && !failedImages.includes(url));
-  const photoIndex = images.length ? imageIndex % images.length : 0;
-  useEffect(() => {
-    if (images.length < 2 || reducedMotion || !visible) return undefined;
-    const timer = setInterval(() => setImageIndex(index => index + 1), 3000);
-    return () => clearInterval(timer);
-  }, [images.length, reducedMotion, visible]);
-  const rental = String(property.propertyType).toUpperCase() === 'RENT';
-  const price = rental ? property.rentalInfo?.monthlyRent || property.price : property.price;
-  const rooms = getPropertyRoomStats(property);
-  const plot = isResidentialPlot(property.propertyType, property.subcategory);
-  const bhk = [...new Set(Object.keys(property.projectPricing?.unitConfigurations || {}).map(getUnitBhk).filter(Boolean))];
-  const location = typeof property.location === 'string' ? property.location : getPropertyLocationLabel({ locality: property.location?.locality, city: property.location?.city, state: property.location?.state });
-  const areaUnit = ({ sq_ft: 'sq ft', sq_m: 'sq m', sq_yards: 'sq yd' })[property.areaUnit] || property.areaUnit || '';
+function FeaturedProjectCard({ project }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const targetUrl = project.url || `/property/${project.id || project._id}`;
+  const displayImage = imageFailed ? '/images/hero-1.jpg' : (project.image || '/images/hero-1.jpg');
+
   return (
-    <article className={`home-property-card ${spotlight ? 'home-property-spotlight' : ''}`}>
-      <div className="home-property-image">
-        <Link to={`/property/${property._id || property.id}`} className="home-property-photo-link" aria-label={`View ${property.title}`}>
-          {images.length ? images.map((image, index) => <img key={image} className={`home-rotating-photo ${index === photoIndex ? 'is-active' : ''}`} src={image} alt={index === photoIndex ? property.title : ''} aria-hidden={index !== photoIndex} loading="lazy" onError={() => setFailedImages(previous => [...previous, image])} />) : <div className="home-image-placeholder"><FaBuilding aria-hidden="true" /><span>Photos coming soon</span></div>}
-        </Link>
-        {images.length > 1 && <span className="home-photo-number">{photoIndex + 1} / {images.length}</span>}
-        <span className="home-property-badge">{rental ? 'For rent' : 'For sale'}</span>
-      </div>
-      <Link to={`/property/${property._id || property.id}`} className="home-property-copy">
-        <p className="home-eyebrow">{spotlight ? 'IN THE SPOTLIGHT' : 'FEATURED PROPERTY'}</p>
-        <h3>{property.title}</h3>
-        {location && <p className="home-property-location"><FaMapMarkerAlt aria-hidden="true" />{location}</p>}
-        <p className="home-property-price">{formatPrice(price)}{rental && <small> / month</small>}</p>
-        <div className="home-property-facts">
-          {!plot && (bhk.length > 0 || rooms.bedrooms > 0) && <span><FaBed aria-hidden="true" />{bhk.length ? `${bhk.join(', ')} BHK` : `${rooms.bedrooms} beds`}</span>}
-          {!plot && rooms.bathrooms > 0 && <span><FaBath aria-hidden="true" />{rooms.bathrooms} baths</span>}
-          {Number(property.area) > 0 && <span><FaRulerCombined aria-hidden="true" />{formatNumber(property.area)} {areaUnit}{plot ? ' plot' : ''}</span>}
+    <article className="home-project-card">
+      <Link to={targetUrl} className="home-project-link" aria-label={`View ${project.title}`}>
+        <div className="home-project-image-box">
+          <img
+            src={displayImage}
+            alt={project.title}
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+          />
+          <div className="home-project-overlay">
+            <h3 className="home-project-name">{project.title}</h3>
+          </div>
         </div>
-        {spotlight && <p className="home-spotlight-description">{property.description || 'Explore the details and speak with our team to find out more.'}</p>}
-        <span className="home-property-link">Explore property <FaArrowRight aria-hidden="true" /></span>
+        <div className="home-project-footer">
+          <span className="home-project-area">
+            <FaMapMarkerAlt aria-hidden="true" />
+            <span>{project.area}</span>
+          </span>
+          <span className="home-project-price">{project.price}</span>
+        </div>
       </Link>
     </article>
   );
@@ -132,6 +151,7 @@ export default function HomePage() {
   const [retry, setRetry] = useState(0);
   const visible = usePageVisible();
   const retryFeatured = useCallback(() => setRetry(value => value + 1), []);
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -144,25 +164,80 @@ export default function HomePage() {
         if (!id || seen.has(id)) return false;
         seen.add(id);
         return true;
-      }).slice(0, 6));
-    }).catch(() => { if (active) { setError(true); setFeaturedProperties([]); } })
-      .finally(() => { if (active) setLoading(false); });
+      }).slice(0, 8));
+    }).catch(() => {
+      if (active) {
+        setError(true);
+        setFeaturedProperties([]);
+      }
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
     return () => { active = false; };
   }, [retry]);
+
+  const projectsToDisplay = featuredProperties.length > 0
+    ? featuredProperties.map(property => {
+        const rental = String(property.propertyType).toUpperCase() === 'RENT';
+        const rawPrice = rental ? property.rentalInfo?.monthlyRent || property.price : property.price;
+        const formatted = formatPrice(rawPrice);
+        const images = (property.images || []).map(getImageUrl).filter(Boolean);
+        const area = typeof property.location === 'string'
+          ? property.location
+          : property.location?.locality || property.location?.city || 'Bhubaneswar';
+        return {
+          id: property._id || property.id,
+          title: property.title,
+          area: area,
+          price: `From ${formatted}*`,
+          image: images[0] || '/images/hero-1.jpg',
+          url: `/property/${property._id || property.id}`
+        };
+      })
+    : SHOWCASE_PROJECTS;
 
   return (
     <div className="home-page" style={{ '--home-animation-state': visible ? 'running' : 'paused' }}>
       <HeroSection />
+
       <section className="home-section home-featured" aria-labelledby="home-featured-title">
         <div className="home-shell">
-          <div className="home-section-heading">
-            <div><p className="home-eyebrow">A CLOSER LOOK</p><h2 id="home-featured-title">Your next place could be here.</h2><p>Explore our featured properties and find what feels right.</p></div>
-            <Link to="/properties" className="home-text-link">View all properties <FaArrowRight aria-hidden="true" /></Link>
+          <div className="home-featured-layout">
+            <div className="home-featured-intro">
+              <span className="home-featured-accent-bar" aria-hidden="true" />
+              <h2 id="home-featured-title">Our Featured<br />Projects</h2>
+              <p>Handpicked residential projects from our trusted developer partners.</p>
+              <Link to="/properties" className="home-explore-projects-btn">
+                Explore All Projects <FaArrowRight aria-hidden="true" />
+              </Link>
+            </div>
+
+            <div className="home-projects-container">
+              {loading && !featuredProperties.length ? (
+                <div className="home-projects-grid" role="status" aria-label="Loading featured projects">
+                  {[1, 2, 3, 4].map(value => (
+                    <div key={value} className="home-project-card home-project-skeleton">
+                      <div className="home-project-image-box" />
+                      <div className="home-project-footer" />
+                    </div>
+                  ))}
+                </div>
+              ) : error && !featuredProperties.length ? (
+                <div className="home-featured-message" role="alert">
+                  <h3>We couldn’t load the latest properties.</h3>
+                  <p>Displaying featured showcase projects. You can retry or browse all listings.</p>
+                  <button className="home-button home-button-primary" onClick={retryFeatured}>Try again</button>
+                  <Link to="/properties" className="home-text-link">Browse properties <FaArrowRight aria-hidden="true" /></Link>
+                </div>
+              ) : (
+                <div className="home-projects-grid">
+                  {projectsToDisplay.map(project => (
+                    <FeaturedProjectCard key={project.id} project={project} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          {loading ? <div className="home-property-grid" role="status" aria-label="Loading featured properties">{[1, 2, 3].map(value => <div key={value} className="home-property-skeleton"><div /><span /><span /></div>)}</div>
-            : error ? <div className="home-featured-message" role="alert"><h3>We couldn’t load the featured properties.</h3><p>You can try again or browse all listings.</p><button className="home-button home-button-primary" onClick={retryFeatured}>Try again</button><Link to="/properties" className="home-text-link">Browse properties <FaArrowRight aria-hidden="true" /></Link></div>
-              : featuredProperties.length ? <div className={featuredProperties.length === 1 ? 'home-property-single' : 'home-property-grid'}>{featuredProperties.map(property => <FeaturedProperty key={property._id || property.id} property={property} spotlight={featuredProperties.length === 1} />)}</div>
-                : <div className="home-featured-message"><h3>Find a property that fits your plans.</h3><p>Browse our listings or tell our team what you’re looking for.</p><Link to="/properties" className="home-button home-button-primary">Browse properties <FaArrowRight aria-hidden="true" /></Link></div>}
         </div>
       </section>
 
@@ -170,16 +245,6 @@ export default function HomePage() {
         <div className="home-shell">
           <div className="home-section-heading"><div><p className="home-eyebrow">A SPACE FOR EVERY PLAN</p><h2 id="home-categories-title">What are you looking for?</h2></div><Link to="/properties?type=rent" className="home-text-link">Looking to rent? <FaArrowRight aria-hidden="true" /></Link></div>
           <div className="home-category-grid">{CATEGORIES.map(({ title, detail, icon: Icon, url }) => <Link to={url} key={title} className="home-category"><span className="home-category-icon"><Icon aria-hidden="true" /></span><h3>{title}</h3><p>{detail}</p><FaArrowRight className="home-category-arrow" aria-hidden="true" /></Link>)}</div>
-        </div>
-      </section>
-
-      <section className="home-section home-services" aria-labelledby="home-services-title">
-        <div className="home-shell">
-          <div className="home-section-heading"><div><p className="home-eyebrow">BEYOND THE PROPERTY SEARCH</p><h2 id="home-services-title">Expertise for every step.</h2><p>Complete real estate solutions under one roof.</p></div></div>
-          <div className="home-services-grid">
-            {SERVICES.map(({ id, icon: Icon, title, description }) => <article key={id} className="home-service"><div className="home-service-top"><span className="home-service-icon"><Icon aria-hidden="true" /></span><span>{String(id).padStart(2, '0')}</span></div><h3>{title}</h3><p>{description}</p><a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" aria-label={`Discuss ${title} on WhatsApp`}>Let’s talk <FaWhatsapp aria-hidden="true" /></a></article>)}
-            <div className="home-service-consult"><p className="home-eyebrow">YOUR TRUSTED REAL ESTATE PARTNER</p><h3>A little guidance.<br />A lot more clarity.</h3><p>From finding the right property to managing it with confidence. Tell us your plans, and we’ll help you take the next step.</p><a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" className="home-button home-button-primary">Discuss your requirement <FaWhatsapp aria-hidden="true" /></a></div>
-          </div>
         </div>
       </section>
 
@@ -194,12 +259,71 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="home-stats-section" aria-label="Dealinee at a glance">
+        <div className="home-shell">
+          <div className="home-stats-grid">
+            {[
+              [6, 'Years of experience', 'Hands-on knowledge of real estate'],
+              [20, 'Team members', 'People dedicated to your next step'],
+              [1000, 'Happy customers', 'Relationships built through service']
+            ].map(([number, title, text]) => (
+              <div key={title} className="home-stat-card">
+                <CountUpNumber value={number} />
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-section home-services" aria-labelledby="home-services-title">
+        <div className="home-shell">
+          <div className="home-section-heading"><div><p className="home-eyebrow">BEYOND THE PROPERTY SEARCH</p><h2 id="home-services-title">Expertise for every step.</h2><p>Complete real estate solutions under one roof.</p></div></div>
+          <div className="home-services-grid">
+            {SERVICES.map(({ id, icon: Icon, title, description }) => <article key={id} className="home-service"><div className="home-service-top"><span className="home-service-icon"><Icon aria-hidden="true" /></span><span>{String(id).padStart(2, '0')}</span></div><h3>{title}</h3><p>{description}</p><a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" aria-label={`Discuss ${title} on WhatsApp`}>Let’s talk <FaWhatsapp aria-hidden="true" /></a></article>)}
+            <div className="home-service-consult"><p className="home-eyebrow">YOUR TRUSTED REAL ESTATE PARTNER</p><h3>A little guidance.<br />A lot more clarity.</h3><p>From finding the right property to managing it with confidence. Tell us your plans, and we’ll help you take the next step.</p><a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" className="home-button home-button-primary">Discuss your requirement <FaWhatsapp aria-hidden="true" /></a></div>
+          </div>
+        </div>
+      </section>
+
       <section className="home-developers" aria-label="Featured developers"><div className="home-shell">
         <div className="home-developer-heading"><div><p className="home-eyebrow">EXPLORE THE NAMES BEHIND THE HOMES</p><h2>Featured developers</h2></div></div>
         <div className="home-developer-window"><div className="home-developer-track">
           {[0, 1].map(copy => <div key={copy} className="home-developer-group" aria-hidden={copy === 1 ? true : undefined}>{[1, 2, 3, 4, 5, 6].map(value => <div className="home-developer-logo" key={value}><img src={`/images/dev${value}.png`} alt={copy === 1 ? '' : `Featured developer ${value}`} width="140" height="64" loading="lazy" /></div>)}</div>)}
         </div></div>
       </div></section>
+
+      <section className="home-section home-founder" aria-labelledby="home-founder-title">
+        <div className="home-shell home-founder-grid">
+          <div className="home-founder-image-wrap">
+            <img
+              src="/images/founder.jpg"
+              alt="Chandan Kumar Sahoo - Founder"
+              width="600"
+              height="500"
+              loading="lazy"
+            />
+            <span className="home-founder-badge">Founder & Strategic Lead</span>
+          </div>
+          <div className="home-founder-copy">
+            <p className="home-eyebrow">LEADERSHIP & VISION</p>
+            <h2 id="home-founder-title">Chandan Kumar Sahoo</h2>
+            <p className="home-founder-role">Founder, Dealinee Estate</p>
+            <blockquote className="home-founder-quote">
+              “Experience that shapes every next step.”
+            </blockquote>
+            <p className="home-founder-bio">
+              With over six years of hands-on experience in the property industry, Chandan founded Dealinee Estate to bring trust, transparency, and personal customer-first guidance to every real estate decision in Bhubaneswar.
+            </p>
+            <div className="home-founder-actions">
+              <Link to="/about" className="home-text-link">
+                Learn more about our team <FaArrowRight aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="home-section home-contact-section" aria-labelledby="home-contact-title"><div className="home-shell"><div className="home-contact-panel"><div><p className="home-eyebrow">LET’S FIND YOUR NEXT ADDRESS</p><h2 id="home-contact-title">Your plans. Our local expertise.</h2><p>Tell us what you have in mind. We’ll help you find the way forward.</p></div><div className="home-contact-actions"><a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" className="home-button home-button-primary"><FaWhatsapp aria-hidden="true" /> Ask on WhatsApp</a><a href="tel:+917008937155"><FaPhone aria-hidden="true" /> +91 9776 631 999</a></div></div></div></section>
       <a className="home-whatsapp-floating" href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer"><FaWhatsapp aria-hidden="true" /> Ask on WhatsApp</a>

@@ -33,31 +33,36 @@ import {
 
 import AmenityIcons from '../../../components/icons/AmenityIcons';
 import { getDefaultFurnishingItemsForStatus } from '../../../utils/propertyFormUtils';
+import PriceWordBadge from '../../common/PriceWordBadge';
 
 import {
   calculateResalePlotPrice, ELECTRIFICATION, isPlotAmenity, PLOT_DIMENSIONS, RESALE_PLOT_DIMENSIONS,
 } from '../../../utils/plotDetails';
 
-const PlotNumberInput = ({ field, label, value, onChange, error, readOnly = false, required = false }) => (
-  <div>
-    <label htmlFor={field} className="block text-sm font-semibold text-gray-700 mb-2">
-      {label} {required && <span className="text-red-500" aria-hidden="true">*</span>}
-    </label>
-    <input
-      id={field}
-      type="number"
-      min="0"
-      step="any"
-      value={value ?? ''}
-      onChange={onChange}
-      readOnly={readOnly}
-      required={required}
-      aria-invalid={Boolean(error)}
-      className={`w-full px-4 py-3 border rounded-lg ${readOnly ? 'bg-gray-100' : 'focus:ring-2 focus:ring-purple-500'} ${error ? 'border-red-500' : 'border-gray-300'}`}
-    />
-    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-  </div>
-);
+const PlotNumberInput = ({ field, label, value, onChange, error, readOnly = false, required = false }) => {
+  const isPriceField = field === 'price' || field === 'pricePerSqft';
+  return (
+    <div>
+      <label htmlFor={field} className="block text-sm font-semibold text-gray-700 mb-2">
+        {label} {required && <span className="text-red-500" aria-hidden="true">*</span>}
+      </label>
+      <input
+        id={field}
+        type="number"
+        min="0"
+        step="any"
+        value={value ?? ''}
+        onChange={onChange}
+        readOnly={readOnly}
+        required={required}
+        aria-invalid={Boolean(error)}
+        className={`w-full px-4 py-3 border rounded-lg ${readOnly ? 'bg-gray-100' : 'focus:ring-2 focus:ring-purple-500'} ${error ? 'border-red-500' : 'border-gray-300'}`}
+      />
+      {isPriceField && <PriceWordBadge value={value} />}
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
+  );
+};
 
 const AmenityOptions = ({ options, selected, onChange }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -294,6 +299,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                   }`}
                 />
               </div>
+              <PriceWordBadge value={propertyDetails.price} />
               {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
             </div>
           )}
@@ -499,6 +505,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                   className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
+              <PriceWordBadge value={rentalInfo.monthlyRent} />
             </div>
 
             <div>
@@ -513,6 +520,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                   className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
+              <PriceWordBadge value={rentalInfo.securityDeposit} />
             </div>
 
             <div>
@@ -527,6 +535,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                   className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
               </div>
+              <PriceWordBadge value={rentalInfo.maintenanceCharges} />
             </div>
 
             <div>
@@ -603,6 +612,7 @@ const PropertyDetailsStep = ({ formData, dispatch, errors = {} }) => {
                   className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
+              <PriceWordBadge value={commercialDetails.price} />
             </div>
 
             <div>

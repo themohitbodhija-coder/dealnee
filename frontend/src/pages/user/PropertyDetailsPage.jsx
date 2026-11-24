@@ -125,7 +125,8 @@ const PropertyDetailsPage = () => {
   const phone = property.contact?.phone || '9776631999';
   const email = property.contact?.email || 'dealinee0@gmail.com';
   const phoneHref = `tel:${String(phone).replace(/[^+\d]/g, '')}`;
-  const whatsappHref = getWhatsAppUrl({ title: property.title, propertyPath: `/property/${encodeURIComponent(id)}` });
+  const displayTitle = (isApartmentProject(property.subcategory) && projectInfo.projectName) ? projectInfo.projectName : (property.title || projectInfo.projectName || '');
+  const whatsappHref = getWhatsAppUrl({ title: displayTitle, propertyPath: `/property/${encodeURIComponent(id)}` });
   const configurations = [...new Set(Object.keys(projectPricing.unitConfigurations || {}).map(getUnitBhk).filter(Boolean))];
   const changeImage = direction => setCurrentImageIndex(index => (index + direction + images.length) % images.length);
 
@@ -134,7 +135,7 @@ const PropertyDetailsPage = () => {
       <div className="property-container">
         <nav aria-label="Breadcrumb" className="property-breadcrumb">
           <button onClick={() => navigate(-1)} className="property-back"><FaArrowLeft aria-hidden="true" /> Back</button>
-          <Link to="/properties">Properties</Link><span aria-hidden="true">/</span><span aria-current="page">{property.title}</span>
+          <Link to="/properties">Properties</Link><span aria-hidden="true">/</span><span aria-current="page">{displayTitle}</span>
         </nav>
 
         <div className="property-intro">
@@ -144,7 +145,7 @@ const PropertyDetailsPage = () => {
                 <span>{isRentalProperty ? 'For rent' : 'For sale'}</span>
                 {projectInfo.projectStatus && <span>{readableLabel(projectInfo.projectStatus)}</span>}
               </div>
-              <h1>{property.title}</h1>
+              <h1>{displayTitle}</h1>
               <p className="property-location"><FaMapMarkerAlt aria-hidden="true" />{getPropertyLocationLabel(property.location)}</p>
             </div>
             <div className="property-heading-price">
@@ -164,7 +165,7 @@ const PropertyDetailsPage = () => {
               touchStart.current = null;
             }}>
               {currentImageSrc ? <button className="property-photo-button" onClick={() => openLightbox(currentImageIndex)} aria-label={`Open photo ${currentImageIndex + 1} of ${images.length}`}>
-                <img src={currentImageSrc} alt={`${property.title} — view ${currentImageIndex + 1}`} />
+                <img src={currentImageSrc} alt={`${displayTitle} — view ${currentImageIndex + 1}`} />
               </button> : <div className="property-no-photo">Photos coming soon</div>}
               {images.length > 1 && <>
                 <button className="property-gallery-arrow property-gallery-prev" onClick={() => changeImage(-1)} aria-label="Previous photo">❮</button>
@@ -175,7 +176,7 @@ const PropertyDetailsPage = () => {
             </div>
             {images.length > 1 && <div className="property-gallery-side">
               {images.slice(1, 3).map((image, index) => <button key={index} className="property-photo-button" onClick={() => openLightbox(index + 1)} aria-label={`Open photo ${index + 2} of ${images.length}`}>
-                <img src={getImageUrl(image)} alt={`${property.title} — view ${index + 2}`} loading="lazy" />
+                <img src={getImageUrl(image)} alt={`${displayTitle} — view ${index + 2}`} loading="lazy" />
               </button>)}
             </div>}
           </section>

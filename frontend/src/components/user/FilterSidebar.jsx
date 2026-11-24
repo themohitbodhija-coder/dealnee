@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaFilter, FaTimes, FaChevronDown } from 'react-icons/fa';
+import PriceWordBadge from '../common/PriceWordBadge';
 
 const FilterSidebar = ({ onFilterChange, categories }) => {
   const [filters, setFilters] = useState({
@@ -114,6 +115,7 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
                 onChange={handleChange}
                 className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 transition text-gray-700"
               />
+              <PriceWordBadge value={filters.minPrice} />
             </div>
             <div>
               <label className="text-sm text-gray-600 mb-1 block">Maximum Price (₹)</label>
@@ -125,6 +127,7 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
                 onChange={handleChange}
                 className="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 transition text-gray-700"
               />
+              <PriceWordBadge value={filters.maxPrice} />
             </div>
           </div>
         )}
