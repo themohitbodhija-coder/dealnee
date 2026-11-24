@@ -104,12 +104,14 @@ export const validateBasicInfo = (data) => {
     errors.propertyId = 'Property ID must be less than 50 characters';
   }
 
-  if (!data.title || data.title.trim().length < 3) {
-    errors.title = 'Title must be at least 3 characters';
-  }
+  if (!isApartmentProject(data.subcategory)) {
+    if (!data.title || data.title.trim().length < 3) {
+      errors.title = 'Title must be at least 3 characters';
+    }
 
-  if (data.title && data.title.length > 100) {
-    errors.title = 'Title must be less than 100 characters';
+    if (data.title && data.title.length > 100) {
+      errors.title = 'Title must be less than 100 characters';
+    }
   }
 
   if (!data.description || data.description.trim().length < 10) {

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { LuArrowRight, LuHome, LuFileCheck2, LuClipboardCheck, LuTarget, LuLightbulb, LuChevronRight, LuCheck } from 'react-icons/lu';
 import PublicPageLayout, { PageCTA, IconCard } from '../../components/user/PublicPageLayout';
+import CountUpNumber from '../../components/user/CountUpNumber';
 
 const team = [
   { name: 'Niharika Sahoo', role: 'Manager', image: '/images/emp2.jpg' },
@@ -19,13 +20,13 @@ export default function AboutPage() {
       <div className="site-shell">
         <nav className="site-breadcrumb" aria-label="Breadcrumb"><Link to="/">Home</Link><LuChevronRight aria-hidden="true" /><span aria-current="page">About us</span></nav>
         <div className="site-about-intro-grid">
-          <div><p className="site-eyebrow">ABOUT DEALINEE ESTATE</p><h1>Property expertise.<br />Built on experience.</h1><p className="site-about-intro-note">Bhubaneswar-based real estate consultancy</p></div>
+          <div><p className="site-eyebrow">ABOUT DEALINEE ESTATE</p><img className="site-about-brand-logo" src="/images/logo.png" alt="Dealinee Estate" width="653" height="575" /><h1>Property expertise.<br />Built on experience.</h1><p className="site-about-intro-note">Bhubaneswar-based real estate consultancy</p></div>
           <div className="site-prose"><p>Founded by Chandan Kumar Sahoo, Dealinee Estate brings together local market knowledge and over six years of property industry experience to help clients make confident real estate decisions.</p><p>Our expertise spans buying, selling, renting, property management and investment consulting. We support clients from understanding their requirements and exploring options to coordinating visits and navigating documentation.</p><p>Our approach is straightforward: transparent advice, personal attention and reliable support throughout your property journey.</p><Link to="/properties" className="site-text-link">Explore our properties<LuArrowRight aria-hidden="true" /></Link></div>
         </div>
       </div>
     </section>
 
-    <section className="site-stats" aria-label="Dealinee at a glance"><div className="site-shell">{[['6+', 'Years of experience', 'Hands-on knowledge of real estate'], ['20+', 'Team members', 'People dedicated to your next step'], ['1,000+', 'Happy customers', 'Relationships built through service']].map(([number, title, text]) => <div key={title}><strong>{number}</strong><h2>{title}</h2><p>{text}</p></div>)}</div></section>
+    <section className="site-stats" aria-label="Dealinee at a glance"><div className="site-shell">{[[6, 'Years of experience', 'Hands-on knowledge of real estate'], [20, 'Team members', 'People dedicated to your next step'], [1000, 'Happy customers', 'Relationships built through service']].map(([number, title, text]) => <div key={title}><CountUpNumber value={number} /><h2>{title}</h2><p>{text}</p></div>)}</div></section>
 
     <section className="site-section site-muted"><div className="site-shell"><div className="site-section-heading"><p className="site-eyebrow">HOW WE HELP</p><h2>A simpler way to move forward.</h2><p>Practical support for buyers, sellers and investors.</p></div><div className="site-card-grid"><IconCard icon={LuHome} title="Easy home buying">A property search shaped around your requirements, with expert guidance along the way.</IconCard><IconCard icon={LuFileCheck2} title="Legal assistance">Support in understanding documentation and coordinating the details of your transaction.</IconCard><IconCard icon={LuClipboardCheck} title="Smooth documentation">Clear communication and paperwork support to help you stay informed throughout the process.</IconCard></div></div></section>
 

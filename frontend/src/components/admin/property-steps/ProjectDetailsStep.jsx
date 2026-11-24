@@ -13,6 +13,7 @@ import {
 } from '../../../reducers/propertyFormReducer';
 
 import { BHK_OPTIONS, getUnitBhk, getUnitBedrooms, isApartmentProject, areaInSquareFeet } from '../../../utils/projectUnits';
+import PriceWordBadge from '../../common/PriceWordBadge';
 
 const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
   const [selectedBhk, setSelectedBhk] = useState('1');
@@ -293,6 +294,7 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
                 }`}
               />
             </div>
+            <PriceWordBadge value={projectPricing.startingPrice} />
             {pricingErrors.startingPrice && (
               <p className="text-red-500 text-xs mt-1">{pricingErrors.startingPrice}</p>
             )}
@@ -337,6 +339,7 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
                 }`}
               />
             </div>
+            <PriceWordBadge value={projectPricing.pricePerSqft} />
             {pricingErrors.pricePerSqft && (
               <p className="text-red-500 text-xs mt-1">{pricingErrors.pricePerSqft}</p>
             )}
@@ -391,6 +394,7 @@ const ProjectDetailsStep = ({ formData, dispatch, errors = {} }) => {
                       value={unit[field] ?? (field === 'bedrooms' ? getUnitBedrooms(code) : '')}
                       onChange={e => handleUnitConfigChange(code, field, e.target.value)}
                       className={`w-full px-4 py-3 border rounded-lg ${unitErrors[code]?.[field] ? 'border-red-500' : 'border-gray-300'}`} />
+                    {field === 'price' && <PriceWordBadge value={unit[field]} />}
                     {unitErrors[code]?.[field] && <p className="text-red-500 text-xs mt-1">{unitErrors[code][field]}</p>}
                   </div>
                 ))}

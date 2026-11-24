@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LuSearch, LuSlidersHorizontal, LuX } from 'react-icons/lu';
+import PriceWordBadge from '../common/PriceWordBadge';
 
 export const listingFilterKeys = ['q', 'type', 'subtype', 'category', 'location', 'locality', 'minPrice', 'maxPrice', 'bedrooms', 'bathrooms', 'minArea', 'maxArea', 'furnished', 'propertyAge'];
 const transactions = [['', 'All properties'], ['buy', 'Buy'], ['rent', 'Rent'], ['commercial', 'Commercial']];
@@ -63,8 +64,16 @@ export default function PropertyListingFilters({ filters, onChange, onReset }) {
       <div className="listing-search-fields">
         <label><span>Search</span><input name="q" value={draft.q || ''} onChange={changeDraft} placeholder="Property name or keyword" maxLength={160} /></label>
         <label><span>Location</span><input name="location" value={draft.location || ''} onChange={changeDraft} placeholder="City or address" maxLength={160} /></label>
-        <label><span>{type === 'rent' ? 'Min. monthly rent' : 'Min. price (₹)'}</span><input type="number" name="minPrice" min="0" max={draft.maxPrice || undefined} value={draft.minPrice || ''} onChange={changeDraft} placeholder="No minimum" /></label>
-        <label><span>{type === 'rent' ? 'Max. monthly rent' : 'Max. price (₹)'}</span><input type="number" name="maxPrice" min={draft.minPrice || '0'} value={draft.maxPrice || ''} onChange={changeDraft} placeholder="No maximum" /></label>
+        <label>
+          <span>{type === 'rent' ? 'Min. monthly rent' : 'Min. price (₹)'}</span>
+          <input type="number" name="minPrice" min="0" max={draft.maxPrice || undefined} value={draft.minPrice || ''} onChange={changeDraft} placeholder="No minimum" />
+          <PriceWordBadge value={draft.minPrice} />
+        </label>
+        <label>
+          <span>{type === 'rent' ? 'Max. monthly rent' : 'Max. price (₹)'}</span>
+          <input type="number" name="maxPrice" min={draft.minPrice || '0'} value={draft.maxPrice || ''} onChange={changeDraft} placeholder="No maximum" />
+          <PriceWordBadge value={draft.maxPrice} />
+        </label>
       </div>
       <div className="listing-filter-actions"><button type="button" className="listing-more" aria-controls="listing-additional-filters" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}><LuSlidersHorizontal aria-hidden="true" /> More filters</button><button type="submit" className="listing-apply"><LuSearch aria-hidden="true" /> Apply filters</button></div>
       <div id="listing-additional-filters" className="listing-more-fields" hidden={!expanded}>

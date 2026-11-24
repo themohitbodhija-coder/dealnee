@@ -132,8 +132,11 @@ export function propertyWritePayload(form, status = 'available') {
   const plot = isResidentialPlot(basic.propertyType, basic.subcategory);
   const resalePlot = plot && isResale;
   const price = resalePlot ? calculateResalePlotPrice(common.area, form.resaleInfo?.pricePerSqft) : common.price;
+  const propertyTitle = isApartmentProject(basic.subcategory)
+    ? (form.newProjectInfo?.projectName || basic.title || '').trim()
+    : (basic.title || '').trim();
   const payload={
-    title:(basic.title||'').trim(),description:(basic.description||'').trim(),propertyType:basic.propertyType,subcategory:basic.subcategory,category,
+    title:propertyTitle,description:(basic.description||'').trim(),propertyType:basic.propertyType,subcategory:basic.subcategory,category,
     price:decimal(isRent ? (rental.monthlyRent || common.price) : isCommercial ? (commercial.price || common.price) : price),
     area:decimal(isCommercial ? (commercial.builtUpArea || common.area) : common.area),areaUnit:resalePlot?'sq_ft':common.areaUnit||'sq_ft',plotArea:plot?null:decimal(common.plotArea),
     bedrooms:land?0:(present(common.bedrooms)?common.bedrooms:present(rental.bedrooms)?rental.bedrooms:0),bathrooms:land?0:(present(common.bathrooms)?common.bathrooms:present(rental.bathrooms)?rental.bathrooms:0),

@@ -1,95 +1,41 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { LuArrowRight as FaArrowRight, LuMapPin as FaMapMarkerAlt, LuSearch as FaSearch, LuSlidersHorizontal as FaSlidersH, LuPause, LuPlay } from 'react-icons/lu';
-import { useMediaQuery, usePageVisible } from '../../hooks/useMediaPreferences';
-
-const HERO_VIDEOS = ['/images/Hero_video1.mp4', '/images/Hero_video2.mp4', '/images/hero_video3.mp4'];
-
-const PURCHASE_BUDGETS = [
-  ['0-5000000', 'Up to ₹50 Lakh'], ['5000000-10000000', '₹50 Lakh – ₹1 Cr'],
-  ['10000000-20000000', '₹1 Cr – ₹2 Cr'], ['20000000+', '₹2 Cr and above'],
-];
-const RENTAL_BUDGETS = [
-  ['0-15000', 'Up to ₹15,000 / month'], ['15000-30000', '₹15,000 – ₹30,000 / month'],
-  ['30000-50000', '₹30,000 – ₹50,000 / month'], ['50000+', '₹50,000+ / month'],
-];
+import React from 'react';
+import { LuShieldCheck } from 'react-icons/lu';
 
 export default function HeroSection() {
-  const navigate = useNavigate();
-  const video = useRef(null);
-  const [videoIndex, setVideoIndex] = useState(0);
-  const [videoPaused, setVideoPaused] = useState(false);
-  const [videoFailed, setVideoFailed] = useState(false);
-  const desktop = useMediaQuery('(min-width: 768px)', true);
-  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const visible = usePageVisible();
-  const videoPlaying = desktop && visible && !videoPaused && !reducedMotion;
-  useEffect(() => {
-    if (!video.current) return;
-    if (videoPlaying) video.current.play()?.catch(() => {});
-    else video.current.pause();
-  }, [videoPlaying, videoIndex]);
-  const [type, setType] = useState('buy');
-  const [location, setLocation] = useState('');
-  const [category, setCategory] = useState('');
-  const [budget, setBudget] = useState('');
-  const [moreFilters, setMoreFilters] = useState(false);
-  const search = event => {
-    event.preventDefault();
-    const params = new URLSearchParams({ type });
-    if (location.trim()) params.set('location', location.trim());
-    if (category && type === 'buy') {
-      params.set('subtype', 'newprojects');
-      params.set('category', category);
-    }
-    if (budget) {
-      const [min, max] = budget.replace('+', '').split('-');
-      params.set('minPrice', min);
-      if (max) params.set('maxPrice', max);
-    }
-    navigate(`/properties?${params.toString()}`);
-  };
+  const bgUrl = `${process.env.PUBLIC_URL || ''}/bgg.png`;
 
   return (
-    <section className="home-hero" aria-labelledby="home-title">
+    <section
+      className="home-hero"
+      style={{ '--hero-bg-url': `url("${bgUrl}")` }}
+      aria-labelledby="home-title"
+    >
       <div className="home-shell">
-        <div className="home-hero-grid">
-          <div className="home-hero-copy">
-            <p className="home-eyebrow"><span /> YOUR NEXT CHAPTER STARTS HERE</p>
-            <h1 id="home-title">Find a place.<br />Make it <em>yours.</em></h1>
-            <p className="home-hero-description">Discover homes, plots and business spaces in Bhubaneswar. Get local guidance at every step.</p>
-            <Link to="/contact" className="home-text-link">Let’s talk about your next move <FaArrowRight aria-hidden="true" /></Link>
-          </div>
-          <div className="home-hero-visual">
-            {videoFailed ? <img src="/images/hero-2.jpg" alt="Contemporary residences with spacious balconies" width="1200" height="800" /> : <video ref={video} src={HERO_VIDEOS[videoIndex]} poster="/images/hero-2.jpg" autoPlay={videoPlaying} muted playsInline preload="metadata" aria-label="Property and interior inspiration" onEnded={() => setVideoIndex(index => (index + 1) % HERO_VIDEOS.length)} onError={() => setVideoFailed(true)} />}
-            {!videoFailed && !reducedMotion && <button type="button" className="home-video-control" onClick={() => setVideoPaused(value => !value)} aria-label={videoPaused ? 'Play hero video' : 'Pause hero video'} aria-pressed={videoPaused}>{videoPaused ? <LuPlay aria-hidden="true" /> : <LuPause aria-hidden="true" />}</button>}
-            <div className="home-visual-caption"><span>SPACE FOR WHAT MATTERS</span><p>A new address.<br />A fresh beginning.</p></div>
-            <span className="home-image-label">Residential · Commercial · Land</span>
+        <div className="home-hero-copy">
+          <h1 id="home-title">
+            Find a place.<br />
+            Make it <em>yours.</em>
+          </h1>
+          <p className="home-hero-description">
+            Discover homes, plots and business spaces in Bhubaneswar. Get local guidance at every step.
+          </p>
+          <div className="home-hero-trust">
+            <div className="home-hero-trust-item">
+              <span className="home-hero-trust-icon">
+                <LuShieldCheck aria-hidden="true" />
+              </span>
+              <span className="home-hero-trust-text">Certified Real Estate Advisor</span>
+            </div>
+            <div className="home-hero-trust-divider" aria-hidden="true" />
+            <div className="home-hero-trust-item">
+              <img src="/images/orera-1.png" alt="ORERA" className="home-hero-rera-img" />
+              <div className="home-hero-rera-info">
+                <span className="home-hero-rera-label">Registered with ORERA</span>
+                <span className="home-hero-rera-no">Reg No: ORA/0308/2025</span>
+              </div>
+            </div>
           </div>
         </div>
-
-        <form className="home-search" onSubmit={search} aria-label="Find a property">
-          <fieldset className="home-search-tabs"><legend className="sr-only">Looking to</legend>
-            {['buy', 'rent', 'commercial'].map(value => <label key={value} className={type === value ? 'is-selected' : ''}>
-              <input type="radio" name="transaction" value={value} checked={type === value} onChange={() => { setType(value); setBudget(''); setCategory(''); }} />
-              <span>{value === 'buy' ? 'Buy' : value === 'rent' ? 'Rent' : 'Commercial'}</span>
-            </label>)}
-          </fieldset>
-          <div className="home-search-fields">
-            <label className="home-location-field"><span>Location</span><div><FaMapMarkerAlt aria-hidden="true" /><input name="location" value={location} onChange={event => setLocation(event.target.value)} placeholder="Enter a city or address" maxLength={160} /></div></label>
-            <button type="button" className="home-filter-toggle" aria-expanded={moreFilters} aria-controls="home-extra-filters" onClick={() => setMoreFilters(value => !value)}><FaSlidersH aria-hidden="true" /> Filters</button>
-            <div id="home-extra-filters" className={`home-extra-filters ${moreFilters ? 'is-expanded' : ''}`}>
-              {type === 'buy' && <label><span>Property type</span><select name="category" value={category} onChange={event => setCategory(event.target.value)}>
-                <option value="">All properties</option><option value="apartment">New apartments</option><option value="villa">New villas</option><option value="plot">New project plots</option>
-              </select></label>}
-              <label><span>{type === 'rent' ? 'Monthly budget' : 'Budget'}</span><select name="budget" value={budget} onChange={event => setBudget(event.target.value)}>
-                <option value="">Any budget</option>{(type === 'rent' ? RENTAL_BUDGETS : PURCHASE_BUDGETS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select></label>
-            </div>
-            <button className="home-button home-button-primary home-search-submit" type="submit"><FaSearch aria-hidden="true" /><span>Search properties</span></button>
-          </div>
-        </form>
-        <div className="home-hero-note"><span>Based in Bhubaneswar</span><span>ORERA registration: ORA/0308/2025</span><Link to="/about">Get to know Dealinee <FaArrowRight aria-hidden="true" /></Link></div>
       </div>
     </section>
   );

@@ -22,9 +22,9 @@ export async function uploadPropertyImage(file, { propertyId = null, createSessi
   if ((!propertyId === !createSessionId) || (propertyId && !uuid.test(propertyId)) || (createSessionId && !uuid.test(createSessionId))) throw new Error('The listing upload session is unavailable. Reload the form.');
   file = await preparePropertyImage(file, mimeType);
   const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
-  const checksum = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2,'0')).join('');
+  const checksum = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
   const invoke = async body => {
-    if (signal?.aborted) throw new DOMException('Upload cancelled','AbortError');
+    if (signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError');
     const { data, error } = await getSupabase().functions.invoke('photo-uploads', { body, signal });
     if (error) {
       let message = 'Image upload failed. Please try again.';
@@ -33,13 +33,16 @@ export async function uploadPropertyImage(file, { propertyId = null, createSessi
     }
     return data;
   };
-  const reservation = await invoke({ action:'reserve', requestId, propertyId, createSessionId, mimeType, byteSize:file.size, checksum });
+  const reservation = await invoke({ action: 'reserve', requestId, propertyId, createSessionId, mimeType, byteSize: file.size, checksum });
   const form = new FormData();
-  for (const [key,value] of Object.entries(reservation.post.fields)) form.append(key,value);
+  for (const [key, value] of Object.entries(reservation.post.fields)) form.append(key, value);
   form.append('file', file.type === mimeType ? file : file.slice(0, file.size, mimeType), file.name);
-  const result = await fetch(reservation.post.url, { method:'POST',body:form,signal,credentials:'omit' });
+  const result = await fetch(reservation.post.url, { method: 'POST', body: form, signal, credentials: 'omit' });
   if (!result.ok) throw new Error('The image could not be uploaded. Please select it again.');
-  const final = await invoke({ action:'finalize', uploadId:reservation.uploadId });
-  if (!['validated','attached'].includes(final?.state)) throw new Error('Image validation did not complete.');
-  return { uploadId:reservation.uploadId, uploadState:'validated', url:final.objectKey, name:file.name, expiresAt:reservation.expiresAt };
+  const final = await invoke({ action: 'finalize', uploadId: reservation.uploadId });
+  if (!['validated', 'attached'].includes(final?.state)) throw new Error('Image validation did not complete.');
+  const preview = (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function')
+    ? URL.createObjectURL(file)
+    : '';
+  return { uploadId: reservation.uploadId, uploadState: 'validated', url: final.objectKey, name: file.name, expiresAt: reservation.expiresAt, preview };
 }
