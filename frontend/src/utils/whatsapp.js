@@ -1,4 +1,4 @@
-const WHATSAPP_NUMBER = '+917008937155';
+const WHATSAPP_NUMBER = '917008937155';
 
 export function getWhatsAppUrl({ title, propertyPath } = {}) {
   const message = propertyPath

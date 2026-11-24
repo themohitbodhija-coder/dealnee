@@ -102,7 +102,7 @@ test('formats project facts, changes gallery images without opening the lightbox
     expect(enquiries).toHaveLength(3);
     enquiries.forEach(link => {
       const url = new URL(link.href);
-      expect(url.pathname).toBe('/919776631999');
+      expect(url.pathname).toBe('/917008937155');
       expect(url.searchParams.get('text')).toBe(`Hi Dealinee Estate, I would like to enquire about DN Kings Land.\n${window.location.origin}/property/project`);
       expect(link.target).toBe('_blank');
     });
