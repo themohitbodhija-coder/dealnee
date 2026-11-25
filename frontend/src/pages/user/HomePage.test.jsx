@@ -77,10 +77,25 @@ test('renders our featured projects section with photo, name, area, and price', 
 
   const firstCard = cards[0];
   expect(firstCard.querySelector('.home-project-name').textContent).toBe('DN Kings Land');
-  expect(firstCard.querySelector('.home-project-area').textContent).toContain('Patia');
+  expect(firstCard.querySelector('.home-project-area').textContent).toBe('Patia, Bhubaneswar');
   expect(firstCard.querySelector('.home-project-price').textContent).toContain('₹5.60 Cr');
   expect(firstCard.querySelector('img')).not.toBeNull();
   expect(firstCard.querySelector('a').getAttribute('href')).toBe('/property/listing-1');
+});
+
+test('formats featured project location with locality and city without duplicates', async () => {
+  propertyService.getFeatured.mockResolvedValue({
+    data: {
+      properties: [
+        listing,
+        { ...listing, _id: 'listing-2', location: { locality: '', city: 'Bhubaneswar' } },
+        { ...listing, _id: 'listing-3', location: { locality: 'Bhubaneswar', city: 'bhubaneswar' } },
+      ],
+    },
+  });
+  await render();
+  const areas = Array.from(container.querySelectorAll('.home-project-area')).map(el => el.textContent);
+  expect(areas).toEqual(['Patia, Bhubaneswar', 'Bhubaneswar', 'Bhubaneswar']);
 });
 
 test('renders company stats section with count up numbers just above services', async () => {

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { inquiryService } from '../../services/api';
+import { submitPublicLead } from '../../services/leadService';
 import { usesSupabase } from '../../lib/backend';
 const empty={name:'',email:'',phone:'',message:'',website:''};
 export default function InquiryForm({propertyId,submitLabel='Send Message'}) {
@@ -13,9 +14,16 @@ export default function InquiryForm({propertyId,submitLabel='Send Message'}) {
     try {
       const {website,...data}=fields;
       if (usesSupabase && !request.current) request.current=window.crypto.randomUUID();
-      await inquiryService.create({...data,...(propertyId && {property:propertyId}),...(usesSupabase && {
+      const inquiryPayload={...data,...(propertyId && {property:propertyId}),...(usesSupabase && {
         website,startedAt:started.current,idempotencyKey:request.current,
-      })});
+      })};
+      const [inquiryResult,crmResult]=await Promise.allSettled([
+        inquiryService.create(inquiryPayload),
+        website ? Promise.resolve(null) : submitPublicLead(data),
+      ]);
+      if (crmResult.status==='rejected') {
+        throw inquiryResult.status==='rejected' ? inquiryResult.reason : crmResult.reason;
+      }
       setSuccess('Thank you. Your inquiry has been received.');setFields(empty);request.current=null;started.current=Date.now();
     } catch (failure) { setError(failure.response?.data?.message || failure.message || 'Unable to send your inquiry. Please try again.'); }
     finally {setBusy(false);submitting.current=false;}

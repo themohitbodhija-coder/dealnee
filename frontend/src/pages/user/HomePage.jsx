@@ -73,7 +73,7 @@ const SHOWCASE_PROJECTS = [
   {
     id: 'project-dn-pallaciya',
     title: 'DN Pallaciya',
-    area: 'Sundarpur',
+    area: 'Sundarpur, Bhubaneswar',
     price: 'From ₹1.60 Cr*',
     image: '/images/projects/dn-pallaciya.jpg',
     url: '/properties?search=DN+Pallaciya'
@@ -81,7 +81,7 @@ const SHOWCASE_PROJECTS = [
   {
     id: 'project-one-world',
     title: 'One World',
-    area: 'Patia',
+    area: 'Patia, Bhubaneswar',
     price: 'From ₹1.85 Cr*',
     image: '/images/projects/one-world.jpg',
     url: '/properties?search=One+World'
@@ -89,7 +89,7 @@ const SHOWCASE_PROJECTS = [
   {
     id: 'project-urban-majestic',
     title: 'Urban Majestic',
-    area: 'Raghunathpur',
+    area: 'Raghunathpur, Bhubaneswar',
     price: 'From ₹2.25 Cr*',
     image: '/images/projects/urban-majestic.jpg',
     url: '/properties?search=Urban+Majestic'
@@ -97,12 +97,23 @@ const SHOWCASE_PROJECTS = [
   {
     id: 'project-adpl-galaxy-3',
     title: 'ADPL Galaxy 3',
-    area: 'Kalinga Nagar',
+    area: 'Kalinga Nagar, Bhubaneswar',
     price: 'From ₹82 Lakh*',
     image: '/images/projects/adpl-galaxy-3.jpg',
     url: '/properties?search=ADPL+Galaxy+3'
   }
 ];
+
+const formatFeaturedLocation = location => {
+  if (typeof location === 'string') return location.trim() || 'Bhubaneswar';
+  const parts = [location?.locality, location?.city]
+    .filter(value => value != null && String(value).trim() !== '')
+    .map(value => String(value).trim());
+  const uniqueParts = parts.filter(
+    (value, index) => parts.findIndex(item => item.toLowerCase() === value.toLowerCase()) === index
+  );
+  return uniqueParts.join(', ') || 'Bhubaneswar';
+};
 
 const formatNumber = value => Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 const formatPrice = value => {
@@ -182,9 +193,7 @@ export default function HomePage() {
         const rawPrice = rental ? property.rentalInfo?.monthlyRent || property.price : property.price;
         const formatted = formatPrice(rawPrice);
         const images = (property.images || []).map(getImageUrl).filter(Boolean);
-        const area = typeof property.location === 'string'
-          ? property.location
-          : property.location?.locality || property.location?.city || 'Bhubaneswar';
+        const area = formatFeaturedLocation(property.location);
         return {
           id: property._id || property.id,
           title: property.title,
