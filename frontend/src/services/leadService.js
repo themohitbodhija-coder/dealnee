@@ -10,7 +10,21 @@ const COMPANY_SLUG = 'dealinee-estate';
  * Submit a public lead directly to the CRM Supabase PostgREST RPC endpoint.
  * Maps contact form fields directly without filtering p_notes.
  */
-export async function submitPublicLead({ name, email, phone, message }) {
+export async function submitPublicLead({
+  name,
+  email,
+  phone,
+  message,
+  transactionTypes = [],
+  propertyTypes = [],
+  minSqft = null,
+  maxSqft = null,
+  minBudget = null,
+  maxBudget = null,
+  budget = null,
+  location = null,
+  employeeLinkToken = null,
+}) {
   const url = process.env.REACT_APP_CRM_RPC_URL || DEFAULT_CRM_RPC_URL;
   const anonKey = process.env.REACT_APP_CRM_ANON_KEY || DEFAULT_CRM_ANON_KEY;
 
@@ -19,7 +33,16 @@ export async function submitPublicLead({ name, email, phone, message }) {
     p_name: name,
     p_phone: phone || '',
     p_email: email,
+    p_transaction_types: transactionTypes,
+    p_property_types: propertyTypes,
+    p_min_sqft: minSqft,
+    p_max_sqft: maxSqft,
+    p_min_budget: minBudget,
+    p_max_budget: maxBudget,
+    p_budget: budget,
+    p_location: location,
     p_notes: message,
+    ...(employeeLinkToken ? { p_employee_link_token: employeeLinkToken } : {}),
   };
 
   const response = await fetch(url, {
